@@ -51,7 +51,7 @@ One ENSv2 **UserRegistry** mounted at **several points in the namespace at once*
 | 1 | Type `mia.support.shopa.eth` | 🟢 owner, canonical registry, "mounted by shopa.eth ✓" |
 | 2 | Merchant B unmounts (1 tx) | `mia.support.shopb.eth` dead next block; shopa stays 🟢 — *"fired the vendor"* |
 | 3 | Vendor unregisters `mia` (1 tx) | every remaining doorway dies in one block — *"fired one agent everywhere"* |
-| 4 | Type `mia.support.scam.eth` | **It resolves.** Verifier flags 🔴: parent not in the roster's declared mounts; canonical registry mismatch. ENS's own documented aliasing attack, caught live. |
+| 4 | Type `mia.support.scam.eth` | **It resolves.** Verifier flags 🔴: C3 two-sided consent fails — `support.scam.eth` is not in the roster's `mount.parents`. (C2 canonical-registry passes by construction here; it guards against a copied/forked registry, not this attack.) ENS's own documented aliasing attack, caught live. |
 
 ## 5. Pros
 

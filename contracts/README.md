@@ -1,66 +1,15 @@
-## Foundry
+# MOUNT contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Foundry project holding `contracts/test/Mount.t.sol`: fork tests against the real, deployed
+ENSv2 contracts on Sepolia (no mocks — see `../docs/ensv2-notes.md` for the pinned addresses and
+`../deployments/sepolia.json` for the machine-readable copy). There is no MOUNT Solidity source of
+its own; MOUNT composes stock ENSv2 registries and resolvers from scripts (`../scripts/`) and a
+TypeScript verifier (`../packages/verifier/`).
 
-Foundry consists of:
-
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
+## Test
 
 ```shell
-$ forge build
+SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com forge test --fork-url "$SEPOLIA_RPC_URL" -vv
 ```
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+See `../README.md` for the full runbook (fork setup, demo scripts, verifier CLI, app).
