@@ -91,3 +91,21 @@ export type TxStep = { what: string; signer: string; from: `0x${string}`; to: `0
 
 /** The transactions an action still needs (empty when there is nothing to do), or why it cannot run. */
 export type ActionPlan = { ok: true; steps: TxStep[] } | { ok: false; error: string };
+
+/** A fleet as read from chain (server side). Addresses are checksummed strings. */
+export type ResolvedFleet = {
+  canonical: string;
+  vendorLabel: string;
+  /** True for support.vendor.eth, which keeps its fleet-file hints and separate operator. */
+  demo: boolean;
+  vendor: `0x${string}`;
+  operator: `0x${string}`;
+  vendorRegistry: `0x${string}`;
+  fleetRegistry: `0x${string}`;
+  sharedResolver: `0x${string}` | null;
+  deployBlock: bigint | null;
+  /** Endorsed doorway labels (from enf.parents; the demo fleet: every parent in the fleet file, scam included). */
+  doorways: string[];
+  /** addr(60) that `clean` and `reset` restore. */
+  cleanSettlement: `0x${string}`;
+};
