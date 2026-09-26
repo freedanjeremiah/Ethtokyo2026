@@ -15,7 +15,7 @@ import type { ActionName, ActionPlan, ActionRequest, ActionsInfo, ResolvedFleet,
 import { FleetFileMissingError, REPO_ROOT, getScanContracts, serverEnv } from "./deployment.server";
 import { DEMO_FLEET, MOUNT_LABEL, doorwayName, formatParents, normLabel, parentSalt, parseFleet, parseParentLabels } from "./fleet-ref";
 import { FleetNotFoundError, agentsOf, contract, forgetFleet, predictProxy, readText, resolveFleet } from "./fleet-resolve.server";
-import { rpcClient } from "./rpc.server";
+import { rpcClient, rpcErrorMessage } from "./rpc.server";
 
 const ACTIONS: readonly ActionName[] = ["unmount", "fire", "dirty", "clean", "counterfeit", "reset", "hire", "add-doorway"];
 const REG_STATUS_REGISTERED = 2;
@@ -73,14 +73,16 @@ export async function actionsInfo(fleetRaw?: string): Promise<ActionsInfo> {
   const kind = await chainKind();
   if (kind === "unreachable") return off("The chain RPC is unreachable, so kill switches are paused.");
   let fleet: ResolvedFleet;
+  let agents: string[];
   try {
     fleet = await resolveFleet(fleetRaw);
+    agents = [...(await agentsOf(fleet)).keys()];
   } catch (err) {
     if (err instanceof FleetNotFoundError) return off(err.message);
     if (err instanceof FleetFileMissingError) return off("No fleet file yet. Run scripts/setup-all.ts.");
-    throw err;
+    // Reading a self-serve fleet is many RPC calls (owners, proxy logs, text records, agent logs); any of them can fail.
+    return off(`RPC unavailable: ${rpcErrorMessage(err)}`);
   }
-  const agents = [...(await agentsOf(fleet)).keys()];
   return { enabled: true, parents: fleet.doorways, agents, chain: kind, canonical: fleet.canonical, vendor: fleet.vendor, demo: fleet.demo };
 }
 
