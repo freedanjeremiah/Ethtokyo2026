@@ -1,9 +1,12 @@
-// GET /api/verify?name=<ens name> -> VerifyResult JSON.
+// GET /api/verify?name=<ens name>[&block=<n>] -> VerifyResult JSON.
 //
-// 400 for a missing/blank ?name=. 502 when the RPC transport itself fails (verify()
-// rejects on transport errors per packages/verifier — those never become a verdict).
-// A syntactically-bad ENS name is NOT a 400: verify() returns a normal 200 "black"
+// 400 for a missing/blank ?name= or a non-decimal ?block=. 502 when the RPC transport itself
+// fails (verify() rejects on transport errors per packages/verifier — those never become a
+// verdict). A syntactically-bad ENS name is NOT a 400: verify() returns a normal 200 "black"
 // result for it ("invalid name: ...").
+//
+// ?block= pins the verdict to a specific block (e.g. the fleet scan's blockNumber) instead of
+// latest, so the Inspector and the Coverage/map panels read the same chain state.
 //
 // C5 (counterparty screening) uses getScreening() -> screenFromEnvFile (@enf/verifier/screen/node,
 // the same resolver scripts/verify.ts uses), server side only: Intercepta when
@@ -39,6 +42,8 @@ export async function GET(request: Request) {
   if (!name) {
     return NextResponse.json({ error: "missing or empty ?name=" }, { status: 400 });
   }
+  const blockParam = url.searchParams.get("block");
+  if (blockParam !== null && !/^\d+$/.test(blockParam)) return NextResponse.json({ error: "block must be a decimal number" }, { status: 400 });
 
   // The fleet file is optional: the verifier itself never needs it (it walks the real ENSv2
   // registries), only the best-effort canonical-doorway fallback below does. Without it — e.g. a
@@ -63,8 +68,9 @@ export async function GET(request: Request) {
   const client = rpcClient();
 
   let result: VerifyResult;
+  let blockNumber: bigint;
   try {
-    const blockNumber = await client.getBlockNumber({ cacheTime: 2_000 });
+    blockNumber = blockParam !== null ? BigInt(blockParam) : await client.getBlockNumber({ cacheTime: 2_000 });
     result = await cachedVerify(`${name}|${blockNumber}|${screening.source}`, () => verify(client, name, { deployment, screen, blockNumber }));
   } catch (err) {
     const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
@@ -79,7 +85,7 @@ export async function GET(request: Request) {
     const canonicalDoorway = `${result.label}.${fleet.canonicalName}`;
     if (canonicalDoorway !== result.normalized && !result.doorways.some((d) => d.normalized === canonicalDoorway)) {
       try {
-        const extra = await verify(client, canonicalDoorway, { deployment, screen, doorways: false });
+        const extra = await verify(client, canonicalDoorway, { deployment, screen, doorways: false, blockNumber });
         result = { ...result, doorways: [...result.doorways, { ...extra, isInput: false }] };
       } catch {
         // Best-effort fallback only; the main result already stands on its own.

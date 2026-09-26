@@ -291,6 +291,13 @@ input {
   margin: 18px 0 28px;
 }
 
+.title-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .page-title {
   margin: 0;
   font-size: 34px;

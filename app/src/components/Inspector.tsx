@@ -70,7 +70,23 @@ function Screening({ r }: { r: VerifyApiResponse }) {
   return null;
 }
 
-export function Inspector({ result, loading, onSelect }: { result: VerifyApiResponse | null; loading: boolean; onSelect: (name: string) => void }) {
+export function Inspector({
+  result,
+  loading,
+  scanBlock,
+  onSelect,
+}: {
+  result: VerifyApiResponse | null;
+  loading: boolean;
+  /** The fleet scan's current block; a result pinned to any other block is stale (Task 1.4). */
+  scanBlock: string | null;
+  onSelect: (name: string) => void;
+}) {
+  // Stale: a result from before the latest scan landed (e.g. a superseded block). Treat it the
+  // same as still-loading so the Inspector never shows a verdict for a block the rest of the
+  // dashboard has moved past.
+  const stale = !!(result?.blockNumber && scanBlock && result.blockNumber !== scanBlock);
+
   if (!result)
     return (
       <Card id="inspector-h" title="Verify a name" className="inspector">
@@ -88,7 +104,7 @@ export function Inspector({ result, loading, onSelect }: { result: VerifyApiResp
 
   const others = result.doorways.filter((d) => !d.isInput);
   return (
-    <Card id="inspector-h" className={`inspector${loading ? " is-loading" : ""}`}>
+    <Card id="inspector-h" className={`inspector${loading || stale ? " is-loading" : ""}`}>
       <div className="insp-head">
         <h2 id="inspector-h" className="insp-name">
           {result.normalized ?? result.input}

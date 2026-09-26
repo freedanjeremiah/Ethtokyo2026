@@ -53,6 +53,8 @@ export default function Page() {
   const lastBlockRef = useRef<string | null>(null);
   const committedRef = useRef(committed);
   committedRef.current = committed;
+  const scanRef = useRef(scan);
+  scanRef.current = scan;
   const verifySeq = useRef(0);
   const scanSeq = useRef(0);
   // On a live chain a scan or lookup can outlast a block. A new block must not restart work that is still
@@ -60,13 +62,17 @@ export default function Page() {
   const verifyInFlight = useRef<string | null>(null);
   const scanInFlight = useRef(false);
 
-  const runVerify = useCallback(async (name: string, fromBlockTick = false) => {
+  // block: pin the verdict to the fleet scan's block, so the Inspector reads the same chain
+  // state as the map/Coverage; undefined (no scan yet) verifies at latest.
+  const runVerify = useCallback(async (name: string, block: string | undefined, fromBlockTick = false) => {
     if (fromBlockTick && verifyInFlight.current === name) return;
     const seq = ++verifySeq.current;
     verifyInFlight.current = name;
     setLoading(true);
     try {
-      const res = await fetch(`/api/verify?name=${encodeURIComponent(name)}`, { cache: "no-store" });
+      const qs = new URLSearchParams({ name });
+      if (block) qs.set("block", block);
+      const res = await fetch(`/api/verify?${qs}`, { cache: "no-store" });
       const body: unknown = await res.json();
       if (seq !== verifySeq.current) return; // superseded by a newer request
       if (res.status === 502) {
@@ -105,18 +111,21 @@ export default function Page() {
         return;
       }
       setScanError(null);
-      setScan(body as FleetScan);
+      const nextScan = body as FleetScan;
+      setScan(nextScan);
+      // The scan landed at a new block: re-verify the committed name there so the Inspector
+      // and the map/Coverage agree on which block they're reading.
+      if (committedRef.current) void runVerify(committedRef.current, nextScan.blockNumber, true);
     } catch (err) {
       if (seq === scanSeq.current) setScanError((err as Error).message);
     } finally {
       scanInFlight.current = false;
     }
-  }, []);
+  }, [runVerify]);
 
   const refreshAll = useCallback(() => {
     void runScan();
-    if (committedRef.current) void runVerify(committedRef.current, true);
-  }, [runScan, runVerify]);
+  }, [runScan]);
 
   // Debounce typing before committing a name to verify.
   useEffect(() => {
@@ -132,7 +141,7 @@ export default function Page() {
       setInputError(null);
       return;
     }
-    void runVerify(committed);
+    void runVerify(committed, scanRef.current?.blockNumber);
   }, [committed, runVerify]);
 
   // Poll the block number every ~1s; re-scan and re-verify whenever it changes.
@@ -243,7 +252,15 @@ export default function Page() {
               </div>
             )}
           </div>
-          {scan && <CopyChip label="Fleet registry" value={scan.fleetRegistry} display={shortAddr(scan.fleetRegistry)} />}
+          {scan && (
+            <div className="title-chips">
+              <CopyChip label="Fleet registry" value={scan.fleetRegistry} display={shortAddr(scan.fleetRegistry)} />
+              <span className="chip static">
+                <span className="chip-label">Block</span>
+                <span className="chip-value num">{fmtBlock(scan.blockNumber)}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="layout">
@@ -282,7 +299,7 @@ export default function Page() {
           </div>
           <div className="col-side">
             <Controls scan={scan} onDone={refreshAll} />
-            <Inspector result={result} loading={loading} onSelect={select} />
+            <Inspector result={result} loading={loading} scanBlock={scan?.blockNumber ?? null} onSelect={select} />
           </div>
         </div>
       </main>
