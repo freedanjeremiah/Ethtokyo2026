@@ -115,17 +115,24 @@ async function chainEpoch(client: Client): Promise<Epoch> {
 const fromBlockCache = new Map<string, bigint>();
 
 /**
- * First block worth scanning. On an anvil fork: the block after the fork point (the fleet cannot predate it).
- * On a live chain: the block the fleet registry got code, by binary search (needs an archive-capable RPC; falls
- * back to the last ~50k blocks).
+ * First block worth scanning. On an anvil fork of a fleet deployed after the fork point: the block after it.
+ * On a live chain, or a fork of a fleet that already existed upstream: the block the fleet registry got code, by
+ * binary search (needs an archive-capable RPC; falls back to the last ~50k blocks).
  */
 async function scanStart(client: Client, epoch: Epoch, fleet: Address, latest: bigint, hint?: bigint): Promise<bigint> {
-  // On a fork, the fork point bounds everything (a recorded deploy block may belong to an older fork).
-  if (epoch.forkBlock !== null) return epoch.forkBlock + 1n;
-  if (hint !== undefined && hint <= latest) return hint;
+  // On a fork, a fleet deployed after the fork point starts there (a recorded deploy block may belong to an older
+  // fork). One that already existed upstream is scanned like the live chain; anvil serves its older logs.
   const cacheKey = `${epoch.key}:${fleet.toLowerCase()}`;
   const cached = fromBlockCache.get(cacheKey);
   if (cached !== undefined) return cached;
+  if (epoch.forkBlock !== null) {
+    const code = await client.request({ method: "eth_getCode", params: [fleet, `0x${epoch.forkBlock.toString(16)}`] } as never).catch(() => "0x");
+    if (typeof code !== "string" || code === "0x") {
+      fromBlockCache.set(cacheKey, epoch.forkBlock + 1n);
+      return epoch.forkBlock + 1n;
+    }
+    if (hint !== undefined && hint <= epoch.forkBlock) return hint;
+  } else if (hint !== undefined && hint <= latest) return hint;
   let start: bigint;
   try {
     let lo = latest > 3_000_000n ? latest - 3_000_000n : 0n;
