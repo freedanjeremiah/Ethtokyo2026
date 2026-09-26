@@ -8,6 +8,7 @@
   --red: #ff4d5e;
   --orange: #ffab2e;
   --black-verdict: #8890a6;
+  --unknown: #b99bff;
   --mono: "SF Mono", "Menlo", "Consolas", ui-monospace, monospace;
 }
 
@@ -239,6 +240,10 @@ main {
   color: var(--red);
 }
 
+.check-status.unknown {
+  color: var(--unknown);
+}
+
 .check-body {
   min-width: 0;
 }
@@ -320,4 +325,79 @@ main {
   .doorway-chip {
     flex: 1 1 100%;
   }
+}
+
+/* ---- C5 screening (Task 8) ---- */
+
+.screen-badge {
+  margin: 18px auto 0;
+  max-width: 760px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: clamp(12px, 1.8vw, 15px);
+  line-height: 1.4;
+  word-break: break-word;
+  border: 2px solid var(--badge-color, var(--panel-border));
+  background: color-mix(in srgb, var(--badge-color, transparent) 12%, var(--panel));
+  color: var(--text);
+}
+
+.screen-badge .icon {
+  flex: none;
+  font-weight: 900;
+  color: var(--badge-color);
+}
+
+.screen-badge strong {
+  color: var(--badge-color);
+  letter-spacing: 0.03em;
+}
+
+.screen-badge.unavailable {
+  --badge-color: var(--unknown);
+  border-style: dashed;
+  font-size: clamp(13px, 2vw, 17px);
+}
+
+.screen-badge.flagged {
+  --badge-color: var(--orange);
+  font-size: clamp(13px, 2vw, 17px);
+}
+
+.screen-badge.clean {
+  --badge-color: var(--green);
+  border-width: 1px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.screen-badge.off {
+  --badge-color: var(--black-verdict);
+  border-width: 1px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chip-tag {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border-radius: 6px;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+}
+
+.chip-tag.unavailable {
+  color: var(--unknown);
+  border-style: dashed;
+}
+
+.chip-tag.flagged {
+  color: var(--orange);
 }

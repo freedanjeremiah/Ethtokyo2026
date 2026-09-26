@@ -5,11 +5,15 @@
 //
 //   npx tsx scripts/verify.ts mia.support.shopa.eth
 //   npx tsx scripts/verify.ts mia.support.scam.eth --json
+//
+// C5 screening comes from screenFromEnv (INTERCEPTA_API_KEY and/or SCREEN_FLAGGED in env / .env.local);
+// with neither set, C5 is omitted.
 
 import { resolve } from "node:path";
 import { createPublicClient, http } from "viem";
 import { type VerifyCore, verify } from "@mount/verifier";
 import { loadDeployment } from "@mount/verifier/node";
+import { screenFromEnv } from "@mount/verifier/screen";
 import { REPO_ROOT, RPC_URL } from "./lib/env.js";
 
 const ICON: Record<string, string> = { green: "GREEN ", red: "RED   ", orange: "ORANGE", black: "BLACK " };
@@ -25,15 +29,19 @@ async function main() {
   const deployment = loadDeployment(resolve(REPO_ROOT, "deployments", "sepolia.json"));
   const client = createPublicClient({ transport: http(RPC_URL) });
   const t0 = performance.now();
-  const r = await verify(client, name, { deployment });
+  const screening = screenFromEnv(process.env);
+  const r = await verify(client, name, { deployment, screen: screening.screen });
   const ms = Math.round(performance.now() - t0);
 
   if (process.argv.includes("--json")) {
-    console.log(JSON.stringify(r, null, 2));
+    console.log(JSON.stringify({ ...r, screening: { source: screening.source, description: screening.description } }, null, 2));
     return;
   }
   console.log(`${r.input}  ->  ${r.normalized ?? "(invalid)"}   [block ${r.blockNumber ?? "-"}, ${ms} ms, RPC ${RPC_URL}]\n`);
-  console.log(`VERDICT  ${ICON[r.verdict]}  ${r.summary}`);
+  console.log(`screening: ${screening.description}`);
+  const c5 = r.checks.find((c) => c.id === "C5");
+  const unavailable = c5?.screen === "unknown" ? "   [screening unavailable]" : "";
+  console.log(`VERDICT  ${ICON[r.verdict]}  ${r.summary}${unavailable}`);
   for (const reason of r.reasons) console.log(`  - ${reason}`);
   console.log("\nchecks");
   printChecks(r);
@@ -48,7 +56,9 @@ async function main() {
   console.log(`  canonicalName(R_d)   ${r.registries.canonicalNameOfDoorway ?? "-"}`);
   console.log(`\ndoorways (${r.doorways.length})`);
   for (const d of r.doorways) {
-    console.log(`  ${ICON[d.verdict]}  ${(d.normalized ?? d.input).padEnd(28)} ${d.isInput ? "(typed) " : ""}${d.summary}`);
+    const dc5 = d.checks.find((c) => c.id === "C5");
+    const note = dc5?.screen === "unknown" ? "  [screening unavailable]" : "";
+    console.log(`  ${ICON[d.verdict]}  ${(d.normalized ?? d.input).padEnd(28)} ${d.isInput ? "(typed) " : ""}${d.summary}${note}`);
   }
 }
 

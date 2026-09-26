@@ -6,7 +6,8 @@
   "description": "MOUNT verifier: green/red/orange/black verdict for <label>.support.<parent> names on ENSv2",
   "exports": {
     ".": "./src/index.ts",
-    "./node": "./src/node.ts"
+    "./node": "./src/node.ts",
+    "./screen": "./src/screen/index.ts"
   },
   "scripts": {
     "test": "vitest run",

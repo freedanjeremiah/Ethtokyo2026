@@ -7,7 +7,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { HttpRequestError, createPublicClient, custom, getAddress, http, stringToHex } from "viem";
+import { HttpRequestError, concat, createPublicClient, custom, getAddress, http, keccak256, stringToHex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { screenFromEnv } from "../src/screen";
 import { verify } from "../src/index";
 import { loadDeployment } from "../src/node";
 import type { Screen, VerifyResult } from "../src/types";
@@ -44,8 +46,21 @@ const v = (name: string, screen?: Screen) => verify(client, name, { deployment, 
 const check = (r: VerifyResult, id: string) => r.checks.find((c) => c.id === id);
 const doorway = (r: VerifyResult, name: string) => r.doorways.find((d) => d.normalized === name);
 
-function script(...args: string[]) {
-  execFileSync("npx", ["tsx", ...args], { cwd: REPO_ROOT, env: { ...process.env, RPC_URL }, stdio: "pipe" });
+function script(...args: string[]): string {
+  return execFileSync("npx", ["tsx", ...args], { cwd: REPO_ROOT, env: { ...process.env, RPC_URL }, stdio: "pipe" }).toString();
+}
+
+/** KEY=value pairs from the repo-root .env.local (re-read each call; demo scripts write to it). */
+function envLocal(): Record<string, string> {
+  const path = resolve(REPO_ROOT, ".env.local");
+  if (!existsSync(path)) return {};
+  return Object.fromEntries(
+    readFileSync(path, "utf8")
+      .split("\n")
+      .map((l) => /^([A-Z0-9_]+)=(.*)$/.exec(l.trim()))
+      .filter((m): m is RegExpExecArray => !!m)
+      .map((m) => [m[1]!, m[2]!]),
+  );
 }
 
 describe.skipIf(!!SKIP)("verifier against the fork", () => {
@@ -188,6 +203,73 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
     });
     it("absent screen -> C5 omitted", async () => {
       expect(check(await v("mia.support.shopa.eth"), "C5")).toBeUndefined();
+    });
+  });
+
+  describe("Intercepta demo: static-list screen + demo-dirty/clean-settlement (truth table on chain)", () => {
+    const ENDORSED = ["vendor", "shopa", "shopb"];
+    const MEMBERS = ["mia", "kai", "rin"];
+    // Same derivation as scripts/lib/fleet.ts ensureDirtySettlementAddress (tag "mount.dirty-settlement.v1").
+    const dirty = () =>
+      privateKeyToAccount(keccak256(concat([envLocal().OPERATOR_PK as `0x${string}`, stringToHex("mount.dirty-settlement.v1")]))).address;
+
+    it("legit + clean -> green; scam + clean -> red (screening passes, C3 fails)", async () => {
+      const { screen, source } = screenFromEnv({ SCREEN_FLAGGED: dirty() });
+      expect(source).toBe("static-list");
+      const legit = await v("mia.support.shopa.eth", screen);
+      expect(legit.verdict).toBe("green");
+      expect(check(legit, "C5")).toMatchObject({ pass: true, screen: "clean" });
+      const scam = await v("mia.support.scam.eth", screen);
+      expect(scam.verdict).toBe("red");
+      expect(check(scam, "C5")).toMatchObject({ pass: true, screen: "clean" }); // same clean address: screening alone would pass it
+      expect(check(scam, "C3")?.pass).toBe(false);
+      expect(scam.resolved.address).toBe(legit.resolved.address);
+    });
+
+    it("demo-dirty-settlement: ONE tx turns every endorsed doorway of every member orange; scam stays red; idempotent", async () => {
+      const before = await client.getBlockNumber();
+      script("scripts/demo-dirty-settlement.ts");
+      expect(await client.getBlockNumber()).toBe(before + 1n); // anvil automine: exactly one transaction
+      const env = envLocal();
+      expect(env.DIRTY_SETTLEMENT_ADDRESS).toBe(dirty());
+      expect(env.SCREEN_FLAGGED?.split(",")).toContain(dirty());
+      // Configure exactly as the app / CLI do: from .env.local via screenFromEnv.
+      const { screen } = screenFromEnv({ SCREEN_FLAGGED: env.SCREEN_FLAGGED });
+      for (const m of MEMBERS) {
+        const r = await v(`${m}.support.shopa.eth`, screen);
+        expect(r.resolved.address, m).toBe(dirty());
+        expect(r.verdict, m).toBe("orange");
+        expect(r.summary).toBe("endorsed doorway, flagged counterparty");
+        expect(check(r, "C5"), m).toMatchObject({ pass: false, screen: "flagged" });
+        expect(r.doorways.map((d) => [d.normalized, d.verdict])).toEqual(ENDORSED.map((p) => [`${m}.support.${p}.eth`, "orange"]));
+      }
+      const scam = await v("mia.support.scam.eth", screen);
+      expect(scam.verdict).toBe("red"); // counterfeit + dirty: red has precedence
+      expect(check(scam, "C5")?.screen).toBe("flagged");
+
+      const again = script("scripts/demo-dirty-settlement.ts");
+      expect(again).toContain("already dirty");
+      expect(await client.getBlockNumber()).toBe(before + 1n);
+    });
+
+    it("screening outage with a dirty settlement: C5 unknown, verdict ENS-only (green), never silently clean", async () => {
+      const r = await v("mia.support.shopa.eth", async () => ({ status: "unknown", reason: "Intercepta quick-scan unavailable: timed out" }));
+      expect(r.verdict).toBe("green");
+      expect(check(r, "C5")).toMatchObject({ pass: false, screen: "unknown" });
+      expect(r.reasons.join()).toContain("unknown");
+      expect(r.doorways.every((d) => d.checks.find((c) => c.id === "C5")?.screen === "unknown")).toBe(true);
+    });
+
+    it("demo-clean-settlement restores the derived settlement address -> green", async () => {
+      const before = await client.getBlockNumber();
+      script("scripts/demo-clean-settlement.ts");
+      expect(await client.getBlockNumber()).toBe(before + 1n);
+      const { screen } = screenFromEnv({ SCREEN_FLAGGED: envLocal().SCREEN_FLAGGED });
+      const r = await v("mia.support.shopa.eth", screen);
+      expect(r.resolved.address).toBe(getAddress(fleet!.settlementAddress));
+      expect(r.verdict).toBe("green");
+      expect(r.doorways.map((d) => d.verdict)).toEqual(["green", "green", "green"]);
+      expect(script("scripts/demo-clean-settlement.ts")).toContain("already clean");
     });
   });
 

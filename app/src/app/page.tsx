@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DoorwayResult, Verdict, VerifyResult } from "@mount/verifier";
+import type { DoorwayResult, Verdict, VerifyCore } from "@mount/verifier";
+import type { VerifyApiResponse } from "@/lib/api-types";
+
+type VerifyResult = VerifyApiResponse;
 
 const DEFAULT_NAME = "mia.support.shopa.eth";
 const BLOCK_POLL_MS = 1000;
@@ -20,6 +23,58 @@ const VERDICT_META: Record<Verdict, { label: string; icon: string; color: string
   black: { label: "BLACK", icon: "✕", color: "var(--black-verdict)" },
 };
 
+/** C5 state for one result: from its C5 check, or "off" when no screen is configured. null = not screened (e.g. black, no addr). */
+type ScreenState = "clean" | "flagged" | "unknown" | "off" | null;
+
+function screenState(r: VerifyCore, source: string | undefined): ScreenState {
+  const c5 = r.checks.find((c) => c.id === "C5");
+  if (c5?.screen) return c5.screen;
+  if (source === "none") return "off";
+  return null;
+}
+
+function ScreeningLine({ result }: { result: VerifyResult }) {
+  const state = screenState(result, result.screening?.source);
+  const c5 = result.checks.find((c) => c.id === "C5");
+  const addr = result.resolved.address;
+  if (state === "unknown")
+    return (
+      <div className="screen-badge unavailable" role="status">
+        <span className="icon">?</span>
+        <span>
+          <strong>SCREENING UNAVAILABLE</strong> — counterparty {addr} could not be screened ({c5?.detail}). The verdict above is ENS-only.
+        </span>
+      </div>
+    );
+  if (state === "flagged")
+    return (
+      <div className="screen-badge flagged" role="status">
+        <span className="icon">⚠</span>
+        <span>
+          <strong>Endorsed doorway, flagged counterparty.</strong> The mount is legitimate (C1–C4 pass), but the fleet&apos;s settlement
+          address {addr} is flagged: {c5?.detail.replace(`${addr} flagged`, "").replace(/^: /, "") || "flagged"}. Do not pay it.
+        </span>
+      </div>
+    );
+  if (state === "clean")
+    return (
+      <div className="screen-badge clean">
+        <span className="icon">✓</span>
+        <span>
+          counterparty {addr} clean · {result.screening.description}
+        </span>
+      </div>
+    );
+  if (state === "off")
+    return (
+      <div className="screen-badge off">
+        <span className="icon">–</span>
+        <span>screening off: {result.screening.description}</span>
+      </div>
+    );
+  return null;
+}
+
 function VerdictBadge({ verdict }: { verdict: Verdict }) {
   const meta = VERDICT_META[verdict];
   return (
@@ -31,10 +86,11 @@ function VerdictBadge({ verdict }: { verdict: Verdict }) {
 }
 
 function CheckRow({ check }: { check: VerifyResult["checks"][number] }) {
+  const unknown = check.screen === "unknown";
   return (
     <div className="check-row">
       <span className="check-pill">{check.id}</span>
-      <span className={`check-status ${check.pass ? "pass" : "fail"}`}>{check.pass ? "PASS" : "FAIL"}</span>
+      <span className={`check-status ${unknown ? "unknown" : check.pass ? "pass" : "fail"}`}>{unknown ? "N/A" : check.pass ? "PASS" : "FAIL"}</span>
       <span className="check-body">
         <div className="check-title">{check.title}</div>
         <div className="check-detail">{check.detail}</div>
@@ -43,8 +99,9 @@ function CheckRow({ check }: { check: VerifyResult["checks"][number] }) {
   );
 }
 
-function DoorwayChip({ doorway }: { doorway: DoorwayResult }) {
+function DoorwayChip({ doorway, source }: { doorway: DoorwayResult; source: string | undefined }) {
   const meta = VERDICT_META[doorway.verdict];
+  const state = screenState(doorway, source);
   return (
     <div className={`doorway-chip${doorway.isInput ? " is-input" : ""}`} style={{ ["--chip-color" as string]: meta.color }}>
       <div className="name">{doorway.normalized ?? doorway.input}</div>
@@ -54,6 +111,8 @@ function DoorwayChip({ doorway }: { doorway: DoorwayResult }) {
         {doorway.isInput ? " (typed)" : ""}
       </div>
       <div className="detail">{doorway.summary}</div>
+      {state === "unknown" && <div className="chip-tag unavailable">? screening unavailable</div>}
+      {state === "flagged" && <div className="chip-tag flagged">⚠ flagged counterparty</div>}
     </div>
   );
 }
@@ -187,6 +246,7 @@ export default function Page() {
               <VerdictBadge verdict={result.verdict} />
               <div className="summary">{result.summary}</div>
               <div className="subname">{result.normalized ?? result.input}</div>
+              <ScreeningLine result={result} />
             </>
           ) : (
             <div className="summary">Verifying…</div>
@@ -208,7 +268,7 @@ export default function Page() {
           <h2>Doorways</h2>
           <div className="doorway-strip">
             {result.doorways.map((d) => (
-              <DoorwayChip key={d.normalized ?? d.input} doorway={d} />
+              <DoorwayChip key={d.normalized ?? d.input} doorway={d} source={result.screening?.source} />
             ))}
           </div>
           {result.doorwaysSkipped.length > 0 && (

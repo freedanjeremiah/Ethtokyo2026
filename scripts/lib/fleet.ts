@@ -548,3 +548,37 @@ export async function ensureDefaultRecords(sharedResolver: Address, want: Roster
   }
   return changed;
 }
+
+// ---------------------------------------------------------------- screening demo (Task 8)
+
+/** Domain separator for the demo's "dirty" settlement address (never funded, never used to sign). */
+export const DIRTY_SETTLEMENT_DERIVATION_TAG = "mount.dirty-settlement.v1";
+
+/**
+ * The demo's flagged settlement address, derived deterministically from the operator key:
+ * address(keccak256(OPERATOR_PK || "mount.dirty-settlement.v1")). Also makes sure .env.local has
+ * DIRTY_SETTLEMENT_ADDRESS and that SCREEN_FLAGGED contains it (other entries are kept), so the
+ * static-list screen (packages/verifier/src/screen) flags it.
+ */
+export function ensureDirtySettlementAddress(): Address {
+  const operatorPk = requireEnv("OPERATOR_PK") as Hex;
+  const dirty = privateKeyToAccount(keccak256(concat([operatorPk, stringToHex(DIRTY_SETTLEMENT_DERIVATION_TAG)]))).address;
+  const current = readEnvFileValue(ENV_LOCAL_PATH, "SCREEN_FLAGGED") ?? "";
+  const list = current.split(/[\s,]+/).filter(Boolean);
+  const updates: Record<string, string> = {};
+  if (readEnvFileValue(ENV_LOCAL_PATH, "DIRTY_SETTLEMENT_ADDRESS") !== dirty) updates.DIRTY_SETTLEMENT_ADDRESS = dirty;
+  if (!list.some((a) => same(a, dirty))) updates.SCREEN_FLAGGED = [...list, dirty].join(",");
+  if (Object.keys(updates).length) {
+    upsertEnvFile(ENV_LOCAL_PATH, updates);
+    console.log(`  .env.local: ${Object.entries(updates).map(([k, v]) => `${k}=${v}`).join(" ")}`);
+  }
+  process.env.DIRTY_SETTLEMENT_ADDRESS = dirty;
+  process.env.SCREEN_FLAGGED = updates.SCREEN_FLAGGED ?? current;
+  return dirty;
+}
+
+/** Operator points the fleet's default addr(60) at `settlement` (one multicall, only if it differs). */
+export async function setDefaultSettlement(settlement: Address): Promise<string[]> {
+  const { sharedResolver } = await loadFleet();
+  return ensureDefaultRecords(sharedResolver, rosterRecords(settlement));
+}
