@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   // `next start`/Vercel unless told to explicitly.
   outputFileTracingIncludes: {
     "/api/verify": ["../deployments/**"],
+    "/api/fleet": ["../deployments/**"],
   },
 };
 

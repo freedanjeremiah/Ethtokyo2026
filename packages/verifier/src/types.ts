@@ -114,4 +114,6 @@ export type VerifyOptions = {
   screen?: Screen;
   /** Compute sibling doorways (default true). Doorways themselves are always computed without doorways. */
   doorways?: boolean;
+  /** Pin every read to this block (default: latest). Lets callers verify many names against one block. */
+  blockNumber?: bigint;
 };

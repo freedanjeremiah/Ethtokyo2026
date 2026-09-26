@@ -19,3 +19,6 @@ deployments/fleet.anvil.json
 
 # Playwright MCP verification screenshots (repo-root output dir)
 .playwright-mcp/
+
+# TypeScript incremental build info
+*.tsbuildinfo

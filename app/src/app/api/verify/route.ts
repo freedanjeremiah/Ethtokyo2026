@@ -11,10 +11,24 @@
 // (the verdict stays ENS-determined and the UI shows "screening unavailable"), never a 502.
 
 import { NextResponse } from "next/server";
-import { createPublicClient, http } from "viem";
 import { verify, type VerifyResult } from "@enf/verifier";
-import { FleetFileMissingError, type FleetFile, getDeployment, getRpcUrl, getScreening, readFleetFile } from "@/lib/deployment.server";
+import { FleetFileMissingError, type FleetFile, getDeployment, getScreening, readFleetFile } from "@/lib/deployment.server";
+import { rpcClient } from "@/lib/rpc.server";
 import type { VerifyApiResponse } from "@/lib/api-types";
+
+// Same name at the same block => one verification, shared by concurrent requests.
+const cache = new Map<string, Promise<VerifyResult>>();
+
+function cachedVerify(key: string, run: () => Promise<VerifyResult>): Promise<VerifyResult> {
+  let p = cache.get(key);
+  if (!p) {
+    p = run();
+    cache.set(key, p);
+    p.catch(() => cache.delete(key));
+    while (cache.size > 64) cache.delete(cache.keys().next().value!);
+  }
+  return p;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,11 +60,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `screening misconfigured: ${(err as Error).message}` }, { status: 500 });
   }
   const screen = screening.screen;
-  const client = createPublicClient({ transport: http(getRpcUrl()) });
+  const client = rpcClient();
 
   let result: VerifyResult;
   try {
-    result = await verify(client, name, { deployment, screen });
+    const blockNumber = await client.getBlockNumber({ cacheTime: 2_000 });
+    result = await cachedVerify(`${name}|${blockNumber}|${screening.source}`, () => verify(client, name, { deployment, screen, blockNumber }));
   } catch (err) {
     const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
     return NextResponse.json({ error: `RPC unavailable: ${message}` }, { status: 502 });

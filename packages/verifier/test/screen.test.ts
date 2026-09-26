@@ -4,7 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import { getAddress } from "viem";
 import { aggregateVerdict } from "../src/pure";
 import type { Check, ScreenStatus } from "../src/types";
-import { INTERCEPTA_DEFAULT_BASE_URL, interceptaScreen, parseAddressList, screenFromEnv, staticListScreen } from "../src/screen";
+import {
+  INTERCEPTA_DEFAULT_BASE_URL,
+  combineScreens,
+  interceptaScreen,
+  parseAddressList,
+  sanctionsOracleScreen,
+  screenFromEnv,
+  staticListScreen,
+} from "../src/screen";
 
 const CLEAN = "0x1111111111111111111111111111111111111111" as const;
 const DIRTY = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as const;
@@ -112,14 +120,80 @@ describe("intercepta adapter (mocked fetch)", () => {
   });
 });
 
+describe("sanctionsOracleScreen", () => {
+  it("sanctioned -> flagged, with the OFAC / Chainalysis source in the reason", async () => {
+    const s = sanctionsOracleScreen({ isSanctioned: async () => true });
+    const r = await s(DIRTY);
+    expect(r.status).toBe("flagged");
+    expect(r.reason).toMatch(/OFAC/);
+    expect(r.reason).toMatch(/Chainalysis/);
+  });
+  it("not sanctioned -> clean", async () => {
+    const r = await sanctionsOracleScreen({ isSanctioned: async () => false })(CLEAN);
+    expect(r.status).toBe("clean");
+  });
+  it("oracle failure -> unknown, never clean, never a throw", async () => {
+    const r = await sanctionsOracleScreen({
+      isSanctioned: async () => {
+        throw new Error("HTTP 429");
+      },
+    })(CLEAN);
+    expect(r.status).toBe("unknown");
+    expect(r.reason).toContain("HTTP 429");
+  });
+  it("caches definite answers per address for cacheTtlMs, but not failures", async () => {
+    let t = 0;
+    const f = vi.fn(async () => false);
+    const s = sanctionsOracleScreen({ isSanctioned: f, cacheTtlMs: 1000, now: () => t });
+    await s(CLEAN);
+    await s(CLEAN);
+    expect(f).toHaveBeenCalledTimes(1);
+    t = 2000;
+    await s(CLEAN);
+    expect(f).toHaveBeenCalledTimes(2);
+    let fail = 0;
+    const g = sanctionsOracleScreen({
+      isSanctioned: async () => {
+        fail++;
+        throw new Error("down");
+      },
+    });
+    await g(CLEAN);
+    await g(CLEAN);
+    expect(fail).toBe(2);
+  });
+});
+
+describe("combineScreens", () => {
+  const clean = async () => ({ status: "clean" as const, reason: "a clean" });
+  const flagged = async () => ({ status: "flagged" as const, reason: "b flagged" });
+  const unknown = async () => ({ status: "unknown" as const, reason: "c down" });
+  it("any flagged -> flagged (its reason), even if another is unknown", async () => {
+    expect(await combineScreens([clean, unknown, flagged])(CLEAN)).toEqual({ status: "flagged", reason: "b flagged" });
+  });
+  it("no flag but one unknown -> unknown", async () => {
+    expect((await combineScreens([clean, unknown])(CLEAN)).status).toBe("unknown");
+  });
+  it("all clean -> clean, reasons joined", async () => {
+    const r = await combineScreens([clean, async () => ({ status: "clean" as const, reason: "d clean" })])(CLEAN);
+    expect(r).toEqual({ status: "clean", reason: "a clean; d clean" });
+  });
+});
+
 describe("screenFromEnv", () => {
-  it("none when nothing is configured", () => {
+  it("sanctions oracle by default (keyless, real)", () => {
     const sel = screenFromEnv({});
+    expect(sel.source).toBe("sanctions-oracle");
+    expect(sel.screen).toBeDefined();
+    expect(sel.description).toMatch(/Chainalysis/);
+  });
+  it("none only when the oracle is switched off and nothing else is configured", () => {
+    const sel = screenFromEnv({ SCREEN_SANCTIONS: "off" });
     expect(sel.source).toBe("none");
     expect(sel.screen).toBeUndefined();
   });
   it("static-list when only SCREEN_FLAGGED is set", async () => {
-    const sel = screenFromEnv({ SCREEN_FLAGGED: DIRTY });
+    const sel = screenFromEnv({ SCREEN_SANCTIONS: "off", SCREEN_FLAGGED: DIRTY });
     expect(sel.source).toBe("static-list");
     expect((await sel.screen!(getAddress(DIRTY))).status).toBe("flagged");
     expect((await sel.screen!(CLEAN)).status).toBe("clean");
@@ -128,7 +202,7 @@ describe("screenFromEnv", () => {
     const f = vi.fn(async () => jsonResponse(200, { toxicScore: 0, traits: [] }));
     vi.stubGlobal("fetch", f);
     try {
-      const sel = screenFromEnv({ INTERCEPTA_API_KEY: "secret-key", INTERCEPTA_SCAN: "deep" });
+      const sel = screenFromEnv({ SCREEN_SANCTIONS: "off", INTERCEPTA_API_KEY: "secret-key", INTERCEPTA_SCAN: "deep" });
       expect(sel.source).toBe("intercepta");
       expect(sel.description).not.toContain("secret-key");
       expect((await sel.screen!(CLEAN)).status).toBe("clean");
@@ -141,7 +215,7 @@ describe("screenFromEnv", () => {
     const f = vi.fn(async () => jsonResponse(200, { toxicScore: 0, traits: [] }));
     vi.stubGlobal("fetch", f);
     try {
-      const sel = screenFromEnv({ INTERCEPTA_API_KEY: "k", SCREEN_FLAGGED: DIRTY });
+      const sel = screenFromEnv({ SCREEN_SANCTIONS: "off", INTERCEPTA_API_KEY: "k", SCREEN_FLAGGED: DIRTY });
       expect(sel.source).toBe("intercepta+static-list");
       expect((await sel.screen!(getAddress(DIRTY))).status).toBe("flagged");
       expect(f).not.toHaveBeenCalled();
@@ -151,7 +225,11 @@ describe("screenFromEnv", () => {
       vi.unstubAllGlobals();
     }
   });
+  it("oracle + Intercepta together when a key is set", () => {
+    expect(screenFromEnv({ INTERCEPTA_API_KEY: "k" }).source).toBe("intercepta+sanctions-oracle");
+  });
   it("rejects bad config loudly", () => {
+    expect(() => screenFromEnv({ SCREEN_SANCTIONS: "maybe" })).toThrow(/SCREEN_SANCTIONS/);
     expect(() => screenFromEnv({ SCREEN_FLAGGED: "nope" })).toThrow(/SCREEN_FLAGGED/);
     expect(() => screenFromEnv({ INTERCEPTA_API_KEY: "k", INTERCEPTA_SCAN: "mega" })).toThrow(/INTERCEPTA_SCAN/);
     expect(() => screenFromEnv({ INTERCEPTA_API_KEY: "k", INTERCEPTA_FLAG_AT: "high" })).toThrow(/INTERCEPTA_FLAG_AT/);

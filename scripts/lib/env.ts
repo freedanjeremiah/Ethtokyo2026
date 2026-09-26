@@ -41,13 +41,16 @@ export const chain = defineChain({
   rpcUrls: { default: { http: [RPC_URL] } },
 });
 
+// Retries with backoff: free public RPCs rate-limit bursts.
+const transport = () => http(RPC_URL, { retryCount: 6, retryDelay: 500 });
+
 export const publicClient: PublicClient = createPublicClient({
   chain,
-  transport: http(RPC_URL),
+  transport: transport(),
 }) as PublicClient;
 
 export function walletClientFor(account: PrivateKeyAccount) {
-  return createWalletClient({ account, chain, transport: http(RPC_URL) });
+  return createWalletClient({ account, chain, transport: transport() });
 }
 
 export type ActorWalletClient = ReturnType<typeof walletClientFor>;

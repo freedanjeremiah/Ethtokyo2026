@@ -89,9 +89,6 @@ export const SALT_FLEET = BigInt(keccak256(stringToHex("enf.fleet-registry.v1"))
 export const SALT_RESOLVER = BigInt(keccak256(stringToHex("enf.shared-resolver.v1")));
 export const SALT_PARENT_REGISTRY = BigInt(keccak256(stringToHex("enf.parent-registry.v1")));
 
-// Placeholder URLs (not live services) for the ENSIP-26 agent records.
-export const AGENT_CONTEXT_URL = "https://enf.example/fleet";
-export const AGENT_ENDPOINT_WEB_URL = "https://enf.example/fleet/chat";
 
 export function parentByLabel(label: string): Parent {
   const n = normalize(label);
@@ -115,6 +112,27 @@ export const CANONICAL_NAME = mountName(CANONICAL_PARENT);
 export const ENDORSED_PARENTS_RECORD = PARENTS.filter((p) => p.endorsed)
   .map((p) => mountName(p.label))
   .join(",");
+
+// ENSIP-26 agent records on the default record (https://docs.ens.domains/ensip/26).
+/**
+ * agent-endpoint[web]: the human-facing web interface, i.e. the ENF dashboard. PUBLIC_BASE_URL sets it. Without it,
+ * an anvil fork gets the local dev URL, and a live chain gets null: the record is left unset rather than publishing
+ * a URL nobody can open.
+ */
+export async function agentEndpointWeb(): Promise<string | null> {
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
+  return (await detectChainKind()) === "anvil" ? "http://localhost:3100" : null;
+}
+
+/** agent-context: inline text (ENSIP-26 allows plain text / Markdown), stating only what the chain records say. */
+export function agentContext(web: string | null): string {
+  return [
+    `ENF support fleet. Canonical registry: ${CANONICAL_NAME}.`,
+    `Agents: ${MEMBERS.map((m) => m.label).join(", ")}, reachable as <agent>.support.<merchant>.eth under each endorsed doorway: ${ENDORSED_PARENTS_RECORD.split(",").join(", ")}.`,
+    `A doorway not listed in enf.parents is not endorsed by this fleet. Payments go to this record's addr(60).`,
+    ...(web ? [`Verify any name at ${web}.`] : []),
+  ].join(" ");
+}
 
 /** labelhash as the uint256 `anyId` PermissionedRegistry accepts. */
 export function labelId(label: string): bigint {
@@ -168,6 +186,8 @@ export type FleetFile = {
   operator: Address;
   vendor: Address;
   settlementAddress?: Address;
+  /** Block the fleet registry was deployed in (log scans start here; public RPCs have no archive state). */
+  deployBlock?: number;
 };
 
 /** Anvil forks also report chainId 11155111, so they get their own gitignored file. */
@@ -223,7 +243,7 @@ async function ensureFactoryProxy(
   salt: bigint,
   initData: Hex,
   known: Address | undefined,
-): Promise<{ address: Address; status: "exists" | "deployed" }> {
+): Promise<{ address: Address; status: "exists" | "deployed"; deployBlock?: number }> {
   const factory = contractOf("VerifiableFactory");
   const impl = addressOf(implName);
   if (known && known !== zeroAddress && (await hasCode(known))) {
@@ -248,9 +268,10 @@ async function ensureFactoryProxy(
         `${wallet.account.address} but its address was not recorded. (${(err as Error).message.split("\n")[0]})`,
     );
   }
-  await send(wallet, `${what} deployProxy`, { ...factory, functionName: "deployProxy", args: [impl, salt, initData] });
+  const hash = await send(wallet, `${what} deployProxy`, { ...factory, functionName: "deployProxy", args: [impl, salt, initData] });
   if (!(await hasCode(predicted))) throw new Error(`${what}: no code at predicted proxy ${predicted}`);
-  return { address: predicted, status: "deployed" };
+  const receipt = await publicClient.getTransactionReceipt({ hash });
+  return { address: predicted, status: "deployed", deployBlock: Number(receipt.blockNumber) };
 }
 
 function userRegistryInit(owner: Address): Hex {
@@ -513,14 +534,15 @@ async function readDefault(resolver: Address, fn: "text" | "addr", arg: string |
 
 export type RosterRecords = { settlement: Address; texts: Record<string, string> };
 
-export function rosterRecords(settlement: Address): RosterRecords {
+export async function rosterRecords(settlement: Address): Promise<RosterRecords> {
+  const web = await agentEndpointWeb();
   return {
     settlement,
     texts: {
       "enf.canonical": CANONICAL_NAME,
       "enf.parents": ENDORSED_PARENTS_RECORD,
-      "agent-context": AGENT_CONTEXT_URL,
-      "agent-endpoint[web]": AGENT_ENDPOINT_WEB_URL,
+      "agent-context": agentContext(web),
+      ...(web ? { "agent-endpoint[web]": web } : {}),
     },
   };
 }
@@ -556,34 +578,25 @@ export async function ensureDefaultRecords(sharedResolver: Address, want: Roster
 
 // ---------------------------------------------------------------- screening demo (Task 8)
 
-/** Domain separator for the demo's "dirty" settlement address (never funded, never used to sign). */
-export const DIRTY_SETTLEMENT_DERIVATION_TAG = "enf.dirty-settlement.v1";
-
 /**
- * The demo's flagged settlement address, derived deterministically from the operator key:
- * address(keccak256(OPERATOR_PK || "enf.dirty-settlement.v1")). Also makes sure .env.local has
- * DIRTY_SETTLEMENT_ADDRESS and that SCREEN_FLAGGED contains it (other entries are kept), so the
- * static-list screen (packages/verifier/src/screen) flags it.
+ * The screening demo's flagged settlement address: a real OFAC SDN address (Lazarus Group, Ronin bridge exploit,
+ * designated 2022-04-14), confirmed sanctioned by the Chainalysis oracle on Ethereum mainnet. Pointing a testnet
+ * record at it moves no funds; it lets the verifier flag a genuinely sanctioned counterparty instead of one we
+ * listed ourselves.
  */
+export const SANCTIONED_DEMO_ADDRESS: Address = getAddress("0x098B716B8Aaf21512996dC57EB0615e2383E2f96");
+
+/** Records DIRTY_SETTLEMENT_ADDRESS in .env.local (for reference) and returns the sanctioned demo address. */
 export function ensureDirtySettlementAddress(): Address {
-  const operatorPk = requireEnv("OPERATOR_PK") as Hex;
-  const dirty = privateKeyToAccount(keccak256(concat([operatorPk, stringToHex(DIRTY_SETTLEMENT_DERIVATION_TAG)]))).address;
-  const current = readEnvFileValue(ENV_LOCAL_PATH, "SCREEN_FLAGGED") ?? "";
-  const list = current.split(/[\s,]+/).filter(Boolean);
-  const updates: Record<string, string> = {};
-  if (readEnvFileValue(ENV_LOCAL_PATH, "DIRTY_SETTLEMENT_ADDRESS") !== dirty) updates.DIRTY_SETTLEMENT_ADDRESS = dirty;
-  if (!list.some((a) => same(a, dirty))) updates.SCREEN_FLAGGED = [...list, dirty].join(",");
-  if (Object.keys(updates).length) {
-    upsertEnvFile(ENV_LOCAL_PATH, updates);
-    console.log(`  .env.local: ${Object.entries(updates).map(([k, v]) => `${k}=${v}`).join(" ")}`);
+  if (readEnvFileValue(ENV_LOCAL_PATH, "DIRTY_SETTLEMENT_ADDRESS") !== SANCTIONED_DEMO_ADDRESS) {
+    upsertEnvFile(ENV_LOCAL_PATH, { DIRTY_SETTLEMENT_ADDRESS: SANCTIONED_DEMO_ADDRESS });
   }
-  process.env.DIRTY_SETTLEMENT_ADDRESS = dirty;
-  process.env.SCREEN_FLAGGED = updates.SCREEN_FLAGGED ?? current;
-  return dirty;
+  process.env.DIRTY_SETTLEMENT_ADDRESS = SANCTIONED_DEMO_ADDRESS;
+  return SANCTIONED_DEMO_ADDRESS;
 }
 
 /** Operator points the fleet's default addr(60) at `settlement` (one multicall, only if it differs). */
 export async function setDefaultSettlement(settlement: Address): Promise<string[]> {
   const { sharedResolver } = await loadFleet();
-  return ensureDefaultRecords(sharedResolver, rosterRecords(settlement));
+  return ensureDefaultRecords(sharedResolver, await rosterRecords(settlement));
 }

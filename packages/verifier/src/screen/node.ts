@@ -20,6 +20,8 @@ export const SCREEN_ENV_KEYS = [
   "INTERCEPTA_TIMEOUT_MS",
   "INTERCEPTA_CACHE_TTL_MS",
   "SCREEN_FLAGGED",
+  "SCREEN_SANCTIONS",
+  "SANCTIONS_RPC_URL",
 ] as const;
 
 /** Minimal KEY=value reader — only the screening keys above are taken from the file. */

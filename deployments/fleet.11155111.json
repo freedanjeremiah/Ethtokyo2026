@@ -1,0 +1,24 @@
+{
+  "fleetRegistry": "0xb40c4F85B9a7E4B57669C979c16132898a13BedD",
+  "sharedResolver": "0x8b51e6668b8703fFeE6f0f554cdfeA28457688a4",
+  "vendor": "0x1607846398FeF2cB4573445160B57aBA3fB68dDB",
+  "operator": "0x7A9092d9C7fFEc85f2ba5ED037B4FCC9e845b05B",
+  "parentRegistries": {
+    "vendor": "0xB7B4dfaa8f8EE161910675039f9Ab811522E6284",
+    "shopa": "0x1C4c1065E76FE069d46063f8398F3206EaE31460",
+    "shopb": "0xb74E19402ebcabC3656790516c80d761D089d282",
+    "scam": "0xE9d54E11397b0233a8Acb7592Ba16b8AB639a198"
+  },
+  "chainId": 11155111,
+  "chainKind": "live",
+  "updatedAt": "2026-09-26T12:37:28.878Z",
+  "canonicalName": "support.vendor.eth",
+  "mountLabel": "support",
+  "members": {
+    "mia": "0x00107c5e51b62bd50418e388FDfc45A93d46d11D",
+    "kai": "0x7b91E8F55a8484f846ae1e825bD2eA1480F757cF",
+    "rin": "0x85Ca78Db7F50159d843765572055b5e254b4Fcfc"
+  },
+  "settlementAddress": "0xe2841c6Eb0FD27DdB7d5B0738396bC260d31Fe33",
+  "deployBlock": 11786237
+}

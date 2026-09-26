@@ -7,8 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { HttpRequestError, concat, createPublicClient, custom, getAddress, http, keccak256, stringToHex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { HttpRequestError, createPublicClient, custom, getAddress, http, stringToHex } from "viem";
 import { screenFromEnv } from "../src/screen";
 import { verify } from "../src/index";
 import { loadDeployment } from "../src/node";
@@ -83,8 +82,9 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
         expect(r.resolved.address).toBe(getAddress(fleet!.settlementAddress));
         expect(r.resolved.canonical).toBe("support.vendor.eth");
         expect(r.resolved.parents).toEqual(["support.vendor.eth", "support.shopa.eth", "support.shopb.eth"]);
-        expect(r.resolved.agentContext).toBeTruthy();
-        expect(r.resolved.agentEndpointWeb).toBeTruthy();
+        expect(r.resolved.agentContext).toContain("ENF support fleet. Canonical registry: support.vendor.eth.");
+        expect(r.resolved.agentEndpointWeb).toMatch(/^https?:\/\//);
+        expect(r.resolved.agentEndpointWeb).not.toContain("enf.example");
         expect(r.registries.doorway).toBe(getAddress(fleet!.fleetRegistry));
         expect(r.registries.canonical).toBe(r.registries.doorway);
         expect(r.registries.canonicalNameOfDoorway).toBe("support.vendor.eth");
@@ -206,16 +206,17 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
     });
   });
 
-  describe("Intercepta demo: static-list screen + demo-dirty/clean-settlement (truth table on chain)", () => {
+  describe("Screening demo: real OFAC sanctions oracle + demo-dirty/clean-settlement (truth table on chain)", () => {
     const ENDORSED = ["vendor", "shopa", "shopb"];
     const MEMBERS = ["mia", "kai", "rin"];
-    // Same derivation as scripts/lib/fleet.ts ensureDirtySettlementAddress (tag "enf.dirty-settlement.v1").
-    const dirty = () =>
-      privateKeyToAccount(keccak256(concat([envLocal().OPERATOR_PK as `0x${string}`, stringToHex("enf.dirty-settlement.v1")]))).address;
+    // scripts/lib/fleet.ts SANCTIONED_DEMO_ADDRESS: a real OFAC SDN address (Lazarus Group, Ronin exploit).
+    const dirty = () => getAddress("0x098B716B8Aaf21512996dC57EB0615e2383E2f96");
+    // Exactly what the app and CLI use by default: the Chainalysis oracle on mainnet, nothing listed locally.
+    const realScreen = () => screenFromEnv({});
 
     it("legit + clean -> green; scam + clean -> red (screening passes, C3 fails)", async () => {
-      const { screen, source } = screenFromEnv({ SCREEN_FLAGGED: dirty() });
-      expect(source).toBe("static-list");
+      const { screen, source } = realScreen();
+      expect(source).toBe("sanctions-oracle");
       const legit = await v("mia.support.shopa.eth", screen);
       expect(legit.verdict).toBe("green");
       expect(check(legit, "C5")).toMatchObject({ pass: true, screen: "clean" });
@@ -232,9 +233,8 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
       expect(await client.getBlockNumber()).toBe(before + 1n); // anvil automine: exactly one transaction
       const env = envLocal();
       expect(env.DIRTY_SETTLEMENT_ADDRESS).toBe(dirty());
-      expect(env.SCREEN_FLAGGED?.split(",")).toContain(dirty());
-      // Configure exactly as the app / CLI do: from .env.local via screenFromEnv.
-      const { screen } = screenFromEnv({ SCREEN_FLAGGED: env.SCREEN_FLAGGED });
+      expect(env.SCREEN_FLAGGED ?? "").not.toContain(dirty()); // flagged by the oracle, not by a list we wrote
+      const { screen } = realScreen();
       for (const m of MEMBERS) {
         const r = await v(`${m}.support.shopa.eth`, screen);
         expect(r.resolved.address, m).toBe(dirty());
@@ -245,7 +245,7 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
       }
       const scam = await v("mia.support.scam.eth", screen);
       expect(scam.verdict).toBe("red"); // counterfeit + dirty: red has precedence
-      expect(check(scam, "C5")).toMatchObject({ screen: "flagged", screenReason: "listed in SCREEN_FLAGGED (static list)" });
+      expect(check(scam, "C5")).toMatchObject({ screen: "flagged", screenReason: "on the OFAC sanctions list (Chainalysis oracle, Ethereum mainnet)" });
 
       const again = script("scripts/demo-dirty-settlement.ts");
       expect(again).toContain("already dirty");
@@ -265,7 +265,7 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
       const before = await client.getBlockNumber();
       script("scripts/demo-clean-settlement.ts");
       expect(await client.getBlockNumber()).toBe(before + 1n);
-      const { screen } = screenFromEnv({ SCREEN_FLAGGED: envLocal().SCREEN_FLAGGED });
+      const { screen } = realScreen();
       const r = await v("mia.support.shopa.eth", screen);
       expect(r.resolved.address).toBe(getAddress(fleet!.settlementAddress));
       expect(r.verdict).toBe("green");

@@ -348,7 +348,7 @@ export async function verify(client: Client, name: string, opts: VerifyOptions):
   const pre = safeNormalize(name);
   if (!pre.ok) return { ...invalidResult(name, pre.error, null), doorways: [], doorwaysSkipped: [] };
 
-  const block = await getBlock(client, { blockTag: "latest" });
+  const block = await getBlock(client, opts.blockNumber !== undefined ? { blockNumber: opts.blockNumber } : { blockTag: "latest" });
   const ctx: Ctx = {
     client,
     d: opts.deployment,

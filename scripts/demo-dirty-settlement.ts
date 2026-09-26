@@ -6,20 +6,24 @@
 // (mia/kai/rin under vendor, shopa, shopb) turns ORANGE at once; the counterfeit scam
 // doorway stays RED (ENS precedence).
 //
-// The dirty address is derived from OPERATOR_PK (tag "enf.dirty-settlement.v1") and
-// written to .env.local as DIRTY_SETTLEMENT_ADDRESS and into SCREEN_FLAGGED (the
-// static-list screen used on the fork). Idempotent: no tx if already dirty.
+// The flagged address is a real OFAC-sanctioned address (SANCTIONED_DEMO_ADDRESS); the
+// script confirms it against the Chainalysis sanctions oracle before sending, so the
+// verifier's C5 check flags it from real data. Idempotent: no tx if already dirty.
 //
 //   npx tsx scripts/demo-dirty-settlement.ts
 //   npx tsx scripts/demo-clean-settlement.ts   # undo
 
+import { sanctionsOracleScreen } from "@enf/verifier/screen";
 import { ensureDirtySettlementAddress, setDefaultSettlement } from "./lib/fleet.js";
 
 async function main() {
   const dirty = ensureDirtySettlementAddress();
+  const check = await sanctionsOracleScreen({ rpcUrl: process.env.SANCTIONS_RPC_URL || undefined })(dirty);
+  if (check.status !== "flagged") throw new Error(`${dirty} is not confirmed sanctioned (${check.status}: ${check.reason}); refusing to run the demo`);
+  console.log(`  ${dirty}: ${check.reason}`);
   const changed = await setDefaultSettlement(dirty);
   console.log(changed.length ? changed.map((c) => `  ${c}`).join("\n") : "default addr(60) already dirty (no tx sent)");
-  console.log(`default addr(60) = ${dirty}  (flagged: listed in SCREEN_FLAGGED)`);
+  console.log(`default addr(60) = ${dirty}  (flagged: OFAC sanctioned)`);
 }
 
 main().catch((err: unknown) => {

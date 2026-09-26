@@ -1,21 +1,31 @@
 // packages/verifier/src/screen — counterparty screening adapters for check C5 ("@enf/verifier/screen").
 //
 // The verifier core only knows the injected `Screen` interface; everything sponsor-specific lives here.
-// screenFromEnv picks, from environment variables (server side only — never ship INTERCEPTA_API_KEY to a browser):
-//   INTERCEPTA_API_KEY set  -> Intercepta (W3A API); if SCREEN_FLAGGED is also set it acts as a local deny-list
-//                              overlay (listed => flagged without calling the API; otherwise Intercepta decides)
-//   else SCREEN_FLAGGED set -> static list (listed => flagged, otherwise clean)
-//   else                    -> none (C5 omitted from results)
+// screenFromEnv combines, from environment variables (server side only — never ship INTERCEPTA_API_KEY to a browser):
+//   Chainalysis sanctions oracle  on by default (keyless, real OFAC data); SCREEN_SANCTIONS=off disables,
+//                                 SANCTIONS_RPC_URL picks the mainnet RPC it is read through
+//   Intercepta (W3A API)          when INTERCEPTA_API_KEY is set
+//   SCREEN_FLAGGED                optional local deny-list overlay (listed => flagged without calling anything)
+// Several screens combine as: any flagged => flagged; else any unknown => unknown; else clean.
+// With nothing enabled the screen is omitted and C5 is left out of results.
 
 import type { Address } from "viem";
 import type { Screen } from "../types";
 import { type InterceptaScan, INTERCEPTA_PATHS, interceptaScreen } from "./intercepta";
+import { SANCTIONS_DEFAULT_RPC_URL, sanctionsOracleScreen } from "./sanctions-oracle";
 import { parseAddressList, staticListScreen } from "./static-list";
 
 export { interceptaScreen, INTERCEPTA_DEFAULT_BASE_URL, INTERCEPTA_PATHS, type InterceptaConfig, type InterceptaScan } from "./intercepta";
 export { staticListScreen, parseAddressList } from "./static-list";
+export {
+  sanctionsOracleScreen,
+  CHAINALYSIS_SANCTIONS_ORACLE,
+  SANCTIONS_DEFAULT_RPC_URL,
+  type SanctionsOracleConfig,
+} from "./sanctions-oracle";
 
-export type ScreenSource = "intercepta" | "intercepta+static-list" | "static-list" | "none";
+/** "+"-joined active sources, e.g. "intercepta+sanctions-oracle", "sanctions-oracle+static-list", or "none". */
+export type ScreenSource = string;
 
 export type ScreenSelection = {
   screen: Screen | undefined;
@@ -43,9 +53,28 @@ export function withDenyList(flagged: readonly Address[], fallback: Screen): Scr
   };
 }
 
+/** Runs every screen; any flagged => flagged, else any unknown => unknown, else clean (reasons joined). */
+export function combineScreens(screens: readonly Screen[]): Screen {
+  if (screens.length === 1) return screens[0]!;
+  return async (address) => {
+    const rs = await Promise.all(screens.map((s) => s(address)));
+    const flagged = rs.find((r) => r.status === "flagged");
+    if (flagged) return flagged;
+    const unknown = rs.find((r) => r.status === "unknown");
+    if (unknown) return unknown;
+    return { status: "clean", reason: rs.map((r) => r.reason).filter(Boolean).join("; ") };
+  };
+}
+
 export function screenFromEnv(env: ScreenEnv = process.env): ScreenSelection {
   const key = env.INTERCEPTA_API_KEY?.trim();
   const flagged = parseAddressList(env.SCREEN_FLAGGED);
+  const sanctionsRaw = (env.SCREEN_SANCTIONS?.trim() || "on").toLowerCase();
+  if (sanctionsRaw !== "on" && sanctionsRaw !== "off") throw new Error(`SCREEN_SANCTIONS: "${env.SCREEN_SANCTIONS}" must be "on" or "off"`);
+
+  const screens: Screen[] = [];
+  const sources: string[] = [];
+  const parts: string[] = [];
   if (key) {
     const rawScan = env.INTERCEPTA_SCAN?.trim() || "quick";
     if (!(rawScan in INTERCEPTA_PATHS)) throw new Error(`INTERCEPTA_SCAN: "${rawScan}" must be "quick" or "deep"`);
@@ -58,15 +87,21 @@ export function screenFromEnv(env: ScreenEnv = process.env): ScreenSelection {
       timeoutMs: num(env, "INTERCEPTA_TIMEOUT_MS"),
       cacheTtlMs: num(env, "INTERCEPTA_CACHE_TTL_MS"),
     });
-    if (flagged.length)
-      return {
-        screen: withDenyList(flagged, intercepta),
-        source: "intercepta+static-list",
-        description: `Intercepta ${scan}-scan + ${flagged.length} address(es) in SCREEN_FLAGGED`,
-      };
-    return { screen: intercepta, source: "intercepta", description: `Intercepta ${scan}-scan` };
+    screens.push(intercepta);
+    sources.push("intercepta");
+    parts.push(`Intercepta ${scan}-scan`);
   }
-  if (flagged.length)
-    return { screen: staticListScreen(flagged), source: "static-list", description: `static list (${flagged.length} address(es) in SCREEN_FLAGGED)` };
-  return { screen: undefined, source: "none", description: "screening not configured (set INTERCEPTA_API_KEY or SCREEN_FLAGGED)" };
+  if (sanctionsRaw === "on") {
+    screens.push(sanctionsOracleScreen({ rpcUrl: env.SANCTIONS_RPC_URL?.trim() || SANCTIONS_DEFAULT_RPC_URL }));
+    sources.push("sanctions-oracle");
+    parts.push("OFAC sanctions list (Chainalysis oracle)");
+  }
+  if (flagged.length) {
+    sources.push("static-list");
+    parts.push(`${flagged.length} address(es) in SCREEN_FLAGGED`);
+  }
+  if (!sources.length) return { screen: undefined, source: "none", description: "screening off (SCREEN_SANCTIONS=off and no INTERCEPTA_API_KEY or SCREEN_FLAGGED)" };
+  const base = screens.length ? combineScreens(screens) : undefined;
+  const screen = flagged.length ? (base ? withDenyList(flagged, base) : staticListScreen(flagged)) : base!;
+  return { screen, source: sources.join("+"), description: parts.join(" + ") };
 }

@@ -41,8 +41,8 @@ for the build log.
                        addr(60)             = fleet settlement address
                        enf.canonical      = support.vendor.eth
                        enf.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth
-                       agent-context        = https://enf.example/fleet        (placeholder)
-                       agent-endpoint[web]  = https://enf.example/fleet/chat   (placeholder)
+                       agent-context        = inline fleet description (ENSIP-26 text)
+                       agent-endpoint[web]  = the ENF dashboard URL (PUBLIC_BASE_URL)
 ```
 
 `mia.support.shopa.eth`, `mia.support.shopb.eth` and `mia.support.vendor.eth` are the same
@@ -64,7 +64,7 @@ resolver, which would have falsified the whole demo the moment a judge typed a m
 | `deployments/sepolia.json` + `deployments/abis/*.json` | Pinned ENSv2 contract addresses/ABIs on Sepolia (Task 2). All app/verifier/script code reads addresses from here — nothing is hardcoded. |
 | `scripts/` | Setup and demo scripts (TypeScript, `tsx`, viem). Actor keys and RPC config in `.env.local`. |
 | `packages/verifier/` | `@enf/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
-| `app/` | Next.js single-screen verifier UI (`app/src/app/page.tsx`) plus two server routes (`/api/verify`, `/api/block`). |
+| `app/` | Next.js fleet dashboard (`app/src/app/page.tsx`, `app/src/components/`): live topology graph, agent × doorway verdict grid, on-chain timeline, the single-name verifier as inspector, and fork-only kill-switch buttons. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (runs `scripts/demo-*.ts`; refused unless the RPC is anvil and not on Vercel; `ENF_KILL_SWITCHES=off` disables). |
 | `contracts/` | Foundry fork tests (`contracts/test/Mount.t.sol`) exercising the real deployed ENSv2 contracts — no mocks. |
 | `docs/ensv2-notes.md` | Pinned ENSv2 deployment research: addresses, `getState` field order, role bit layout, resolution semantics — all VERIFIED-ONCHAIN or VERIFIED-SOURCE against the live deployment. |
 | `docs/intercepta.md` | Intercepta (Web3 Antivirus) API research and the C5 screening design. |
@@ -88,7 +88,7 @@ Input: any name `L.support.P` typed by a user (e.g. `mia.support.shopa.eth`).
      C2  R_doorway == R_canonical                                  (canonical registry match)
      C3  normalize(P's own name) is in enf.parents                (two-sided consent)
      C4  the parent name (P and support.P) is not expired           (doorway alive)
-     C5  [Intercepta, gated] screen(addr(60))                       (party clean) — omitted if no screen injected
+     C5  screen(addr(60)): OFAC sanctions oracle (+ Intercepta if keyed) (party clean) — omitted if screening is off
 5. verdict
      C1 or C4 fail                 -> BLACK  not a member
      resolves, but C2 or C3 fails  -> RED    counterfeit mount
@@ -200,13 +200,17 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   resolver setter role would let that member rewrite the bundle for *everyone* (verified in
   `contracts/test/Mount.t.sol:test_scopedMemberRoleWouldRewriteEveryone`) — ENF never grants
   setter roles to members, only to the operator key.
-- **Intercepta screening only covers the settlement address, and only when configured.** No API
+- **C5 screening covers only the settlement address.** By default it asks the Chainalysis
+  sanctions oracle on Ethereum mainnet (real OFAC data, keyless); the orange demo points the
+  settlement record at a real OFAC-listed address, so the flag comes from that oracle, not from a
+  list ENF wrote. **Intercepta is used only when an API key is configured.** No API
   key has been exercised end-to-end against a real "flagged" mainnet-style verdict (see §8); the
   flag threshold is ENF's own choice, not Intercepta's; and Intercepta's documented chain list
   is mainnets only, so its verdict for a fresh Sepolia address is unknown behaviour, not
   necessarily "clean."
-- **`agent-context` / `agent-endpoint[web]` are placeholder URLs** (`https://enf.example/...`) —
-  no real agent-serving endpoint exists behind them.
+- **`agent-endpoint[web]` points at the dashboard, not at an agent that answers.** `agent-context`
+  is an inline description (ENSIP-26 allows plain text); there is no MCP or A2A agent server behind
+  the fleet, so no `agent-endpoint[mcp]` / `[a2a]` record is published.
 - **`ensureParentRegistry` sets the merchant's own `<parent>.eth` resolver to `0x0`.** Per the
   topology in §1, this is deliberate — an inherited wildcard resolver on `<parent>.eth` is exactly
   what would let a non-member (`bob.support.shopa.eth`) or the bare `support.shopa.eth` node
@@ -217,10 +221,8 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   resolve in stock ENS clients — ENF's verifier still returns black for them (it checks the
   resolver at the leaf, not inherited), but any client that only checks "does this resolve" would
   be fooled, same failure mode as the counterfeit-mount case above.
-- **Live Sepolia has not been exercised** — see §7. Everything above was run and verified on an
-  anvil fork of Sepolia against the real, deployed contract bytecode. Registering
-  `vendor`/`shopa`/`shopb`/`scam.eth` on live Sepolia is first-come, first-served like any `.eth`
-  name — see §7.6 for what happens if one is already taken.
+- **The fleet is deployed on live Sepolia** (§7.6). The Foundry and vitest suites still run against an
+  anvil fork, because they fire kill switches and time-travel, which a public chain does not allow.
 
 ---
 
@@ -309,40 +311,54 @@ read as "no resolver" — i.e. a **possible false BLACK verdict** live on stage,
 502. Warming the RPC up first (and having a fast, non-rate-limited endpoint under load) avoids
 finding this out mid-demo.
 
-### 7.6 Live Sepolia — documented, **not yet executed**
+### 7.6 Live Sepolia (deployed 2026-09-26)
 
-The steps below are the same scripts pointed at live Sepolia instead of the fork. They require
-funded keys and have **not been run** (global constraint: funding and live registration are a
-human step, out of scope for autonomous execution). Run them in this order — funding has to come
-*after* `00-keys.ts` generates the addresses to fund, not before:
+The fleet runs on **live Sepolia** (ENSv2), built by the same scripts as the fork. Every value below was
+read back from chain; `deployments/fleet.11155111.json` is the record the app uses.
+
+| What | Address / name |
+|---|---|
+| `vendor.eth` / `shopa.eth` / `shopb.eth` / `scam.eth` | owned by VENDOR / SHOPA / SHOPB / SCAM (registered via the real ETHRegistrar commit/reveal) |
+| Fleet `UserRegistry` | [`0xb40c4F85B9a7E4B57669C979c16132898a13BedD`](https://sepolia.etherscan.io/address/0xb40c4F85B9a7E4B57669C979c16132898a13BedD) (deployed in block 11786237) |
+| Shared `PermissionedResolver` | [`0x8b51e6668b8703fFeE6f0f554cdfeA28457688a4`](https://sepolia.etherscan.io/address/0x8b51e6668b8703fFeE6f0f554cdfeA28457688a4) |
+| Parent registries | vendor `0xB7B4…6284`, shopa `0x1C4c…1460`, shopb `0xb74E…d282`, scam `0xE9d5…a198` |
+| Agents | `mia`, `kai`, `rin` (one ERC-1155 token each in the fleet registry) |
+| Settlement (`addr(60)` of the default record) | `0xe2841c6Eb0FD27DdB7d5B0738396bC260d31Fe33` |
+
+Checked on live Sepolia with plain viem (its built-in Sepolia Universal Resolver, none of ENF's code):
+all 12 `<agent>.support.<parent>.eth` names resolve to the settlement address, `kai.support.scam.eth`
+included (it resolves; the verifier flags it RED because `support.scam.eth` is not in `enf.parents`),
+while `bob.support.shopa.eth` and `support.shopa.eth` return `null`.
+
+`agent-endpoint[web]` is **not** set on live Sepolia yet: the scripts only publish it when
+`PUBLIC_BASE_URL` points at a reachable deployment of the dashboard. `agent-context` is set.
+
+**Reproduce from scratch** (fresh keys; the four names must still be free):
 
 ```bash
-# 1. Generate fresh actor keys into .env.local (no auto-funding off a fork this time).
-npx tsx scripts/00-keys.ts
-
-# 2. .env.local: set RPC_URL=https://ethereum-sepolia-rpc.publicnode.com (or your own key), then
-#    fund VENDOR_PK/OPERATOR_PK/SHOPA_PK/SHOPB_PK/SCAM_PK/MIA_PK/KAI_PK/RIN_PK with Sepolia ETH —
-#    the addresses 00-keys.ts just printed. The app reads RPC_URL from this same root .env.local
-#    (process.env still wins if you export it) — see "App RPC configuration" below.
-
-# 3. Register vendor.eth/shopa.eth/shopb.eth/scam.eth EARLY: these are real, permissionless labels
-#    on live Sepolia and any of them may already be taken by someone else, unlike on a fresh fork.
-#    setup-names.ts (called by setup-all.ts) fails loudly with "already owned by <address>, not
-#    us" if a label is squatted — there is no scripted fallback, you'd need to pick different
-#    parent names (and update ACTOR_LABELS / the vendor/shopa/shopb/scam constants) and re-run.
-npx tsx scripts/setup-all.ts            # same steps as §7.1, writes deployments/fleet.11155111.json
+npx tsx scripts/00-keys.ts                                   # prints the actor addresses
+# fund VENDOR with ~0.05 Sepolia ETH, then:
+export RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+npx tsx scripts/fund-actors.ts 0.008                         # VENDOR tops up OPERATOR/SHOPA/SHOPB/SCAM
+npx tsx scripts/setup-all.ts                                 # ~6 min: each .eth name waits out the 60 s commitment
 npx tsx scripts/check-resolution.ts
-npx tsx scripts/verify.ts mia.support.shopa.eth
 ```
 
-**App RPC configuration.** `npm run dev -w app` / `next start` run with Next's own cwd as `app/`,
-so Next's automatic `.env*` loading never sees the repo-root `.env.local` that `00-keys.ts` and
-the scripts above write to. The app's server code (`app/src/lib/deployment.server.ts`) reads
-`RPC_URL` explicitly from that root `.env.local` (process.env still wins if you export `RPC_URL`
-yourself), the same way it already does for the C5 screening keys — so pointing the root
-`.env.local`'s `RPC_URL` at live Sepolia is enough; no shell export or `app/.env.local` needed.
+**Dashboard on live Sepolia** (local server; kill switches send real transactions from the demo keys):
 
----
+```bash
+cd app
+RPC_URL=https://sepolia.gateway.tenderly.co \
+ACTIONS_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com \
+ENF_KILL_SWITCHES=live npx next dev -p 3100
+```
+
+- `RPC_URL` serves the dashboard's reads; it must allow `eth_getLogs` from the fleet's deploy block
+  (publicnode's free tier rate-limits `eth_getLogs`; Tenderly's public gateway serves it).
+- `ACTIONS_RPC_URL` carries the kill-switch transactions so they do not share a rate limit with the reads.
+- `ENF_KILL_SWITCHES=live` is required before the buttons act on a live chain; they are always off on Vercel.
+- A block is ~12 s on Sepolia and a full scan takes ~10 s, so a kill switch shows up on the dashboard
+  within about 30 s of the click.
 
 ## 8. ENF for AI agents (Curvegrid)
 
@@ -353,8 +369,8 @@ ENF's structure maps directly onto "agents as namespaces":
   that has mounted the fleet — is the same on-chain identity, discoverable by any ENS client,
   with no custom API to integrate against.
 - **Discovery keys are served from the default record bundle**, using the ENSIP-26 text keys
-  `agent-context` and `agent-endpoint[web]` (currently placeholder `https://enf.example/...`
-  URLs — see §6). Because these live in the shared resolver's default (`0x00`) record, every
+  `agent-context` (an inline fleet description) and `agent-endpoint[web]` (the dashboard URL,
+  set from `PUBLIC_BASE_URL`; see §6). Because these live in the shared resolver's default (`0x00`) record, every
   member gets them with **zero per-member writes**: the operator sets the bundle once, and it
   applies to every doorway of every agent.
 - **Hire or fire a whole fleet with one transaction.** A merchant onboarding an agent fleet is
@@ -405,9 +421,12 @@ Full detail in [`docs/intercepta.md`](docs/intercepta.md). Summary:
 - No real "flagged" 200 response has been observed against a live key (none was available during
   the build); the adapter's shape comes from the documented OpenAPI schema and was verified
   against mocked responses plus one live 403 (bad-key) response.
-- The scripted demo composes a static deny-list (`SCREEN_FLAGGED`) checked **first**, then
-  Intercepta if configured — so the orange demo beat is deterministic even once a real API key is
-  added, and a listed address never depends on network access.
+- C5 always also asks the **Chainalysis sanctions oracle** on Ethereum mainnet
+  (`0x40C5…aC8fb`, `isSanctioned(address)`, keyless; `SCREEN_SANCTIONS=off` disables it). Results
+  combine as: any flagged => flagged, else any unreachable => unknown, else clean.
+- The orange demo (`demo-dirty-settlement.ts`) points the settlement record at a real OFAC-listed
+  address (Lazarus Group, Ronin exploit) and refuses to run unless the oracle confirms it.
+  `SCREEN_FLAGGED` remains only as an optional local deny-list override.
 
 ---
 

@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Abi } from "viem";
+import type { Abi, Address } from "viem";
 import { REQUIRED_ABIS, type RequiredAbiName, type SepoliaJson, deploymentFromJson } from "@enf/verifier";
 import type { VerifierDeployment } from "@enf/verifier";
 import type { ScreenSelection } from "@enf/verifier/screen";
@@ -55,14 +55,37 @@ export function getDeployment(): VerifierDeployment {
   return cachedDeployment;
 }
 
+type ScanContracts = { labelStore: { address: Address; abi: Abi }; resolverAbi: Abi; ethRegistry: Address };
+let cachedExtras: ScanContracts | null = null;
+
+/** LabelStore (tokenId -> label string), ETHRegistry and the PermissionedResolver ABI, for the dashboard's fleet scan. */
+export function getScanContracts(): ScanContracts {
+  if (cachedExtras) return cachedExtras;
+  const sepolia = readJson<{ contracts: Record<string, { address: Address }> }>(resolve(REPO_ROOT, "deployments", "sepolia.json"));
+  const labelStore = sepolia.contracts.LabelStore;
+  const ethRegistry = sepolia.contracts.ETHRegistry;
+  if (!labelStore || !ethRegistry) throw new Error("deployments/sepolia.json has no LabelStore / ETHRegistry");
+  cachedExtras = {
+    labelStore: { address: labelStore.address, abi: readJson<Abi>(resolve(REPO_ROOT, "deployments", "abis", "LabelStore.json")) },
+    resolverAbi: readJson<Abi>(resolve(REPO_ROOT, "deployments", "abis", "PermissionedResolverImpl.json")),
+    ethRegistry: ethRegistry.address,
+  };
+  return cachedExtras;
+}
+
+export { REPO_ROOT };
+
 export class FleetFileMissingError extends Error {}
 
-/** FLEET_FILE env, else fleet.anvil.json in dev / fleet.11155111.json in production (repo-relative). */
+/**
+ * FLEET_FILE env, else picked from the RPC the app talks to: a local node (127.0.0.1 / localhost) is the anvil
+ * fork -> fleet.anvil.json; anything else is live Sepolia -> fleet.11155111.json (both repo-relative).
+ */
 export function fleetFilePath(): string {
   const envFile = process.env.FLEET_FILE;
   if (envFile) return resolve(REPO_ROOT, envFile);
-  const file = process.env.NODE_ENV === "production" ? "deployments/fleet.11155111.json" : "deployments/fleet.anvil.json";
-  return resolve(REPO_ROOT, file);
+  const local = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(getRpcUrl());
+  return resolve(REPO_ROOT, local ? "deployments/fleet.anvil.json" : "deployments/fleet.11155111.json");
 }
 
 export type FleetFile = {
@@ -74,6 +97,8 @@ export type FleetFile = {
   parentRegistries: Record<string, string>;
   settlementAddress: string;
   chainKind: string;
+  /** Block the fleet registry was deployed in, written by scripts/01-deploy-fleet.ts. */
+  deployBlock?: number;
 };
 
 /** Reads the fleet deployment file at request time (it's gitignored and may not exist at build time). */
@@ -81,7 +106,7 @@ export function readFleetFile(): FleetFile {
   const path = fleetFilePath();
   if (!existsSync(path)) {
     throw new FleetFileMissingError(
-      `fleet deployment file not found at ${path} — start the fork and run scripts/setup-all.ts (see task-7 acceptance steps), or set FLEET_FILE`,
+      `fleet deployment file not found at ${path}. Start the fork and run scripts/setup-all.ts (see task-7 acceptance steps), or set FLEET_FILE`,
     );
   }
   return readJson<FleetFile>(path);

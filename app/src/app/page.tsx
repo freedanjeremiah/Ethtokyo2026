@@ -1,174 +1,122 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DoorwayResult, Verdict, VerifyCore } from "@enf/verifier";
+import { MagnifyingGlass, WarningCircle } from "@phosphor-icons/react";
 import type { VerifyApiResponse } from "@/lib/api-types";
-
-type VerifyResult = VerifyApiResponse;
+import type { FleetScan } from "@/lib/fleet-types";
+import { Activity } from "@/components/Activity";
+import { Controls } from "@/components/Controls";
+import { Coverage } from "@/components/Coverage";
+import { FleetMap } from "@/components/FleetMap";
+import { Inspector } from "@/components/Inspector";
+import { Card, CopyChip, Skeleton, fmtBlock, shortAddr } from "@/components/ui";
 
 const DEFAULT_NAME = "mia.support.shopa.eth";
 const BLOCK_POLL_MS = 1000;
 const DEBOUNCE_MS = 400;
 
 type ApiError = { error: string };
+type Focus = { doorway: string | null; agent: string | null };
 
 function isApiError(x: unknown): x is ApiError {
   return typeof x === "object" && x !== null && "error" in x;
 }
 
-const VERDICT_META: Record<Verdict, { label: string; icon: string; color: string }> = {
-  green: { label: "GREEN", icon: "✓", color: "var(--green)" },
-  red: { label: "RED", icon: "✗", color: "var(--red)" },
-  orange: { label: "ORANGE", icon: "⚠", color: "var(--orange)" },
-  black: { label: "BLACK", icon: "✕", color: "var(--black-verdict)" },
-};
-
-/** C5 state for one result: from its C5 check, or "off" when no screen is configured. null = not screened (e.g. black, no addr). */
-type ScreenState = "clean" | "flagged" | "unknown" | "off" | null;
-
-function screenState(r: VerifyCore, source: string | undefined): ScreenState {
-  const c5 = r.checks.find((c) => c.id === "C5");
-  if (c5?.screen) return c5.screen;
-  if (source === "none") return "off";
-  return null;
-}
-
-function ScreeningLine({ result }: { result: VerifyResult }) {
-  const state = screenState(result, result.screening?.source);
-  const c5 = result.checks.find((c) => c.id === "C5");
-  const addr = result.resolved.address;
-  const reason = c5?.screenReason ?? "no reason given";
-  if (state === "unknown")
-    return (
-      <div className="screen-badge unavailable" role="status">
-        <span className="icon">?</span>
-        <span>
-          <strong>SCREENING UNAVAILABLE</strong> — counterparty {addr} could not be screened ({reason}). The verdict above is ENS-only.
-        </span>
-      </div>
-    );
-  if (state === "flagged" && result.verdict === "orange")
-    return (
-      <div className="screen-badge flagged" role="status">
-        <span className="icon">⚠</span>
-        <span>
-          <strong>Endorsed doorway, flagged counterparty.</strong> The mount is legitimate (C1–C4 pass), but the fleet&apos;s settlement
-          address {addr} is flagged: {reason}. Do not pay it.
-        </span>
-      </div>
-    );
-  if (state === "flagged")
-    return (
-      <div className="screen-badge flagged" role="status">
-        <span className="icon">⚠</span>
-        <span>
-          Settlement address {addr} is also flagged: {reason}.
-        </span>
-      </div>
-    );
-  if (state === "clean")
-    return (
-      <div className="screen-badge clean">
-        <span className="icon">✓</span>
-        <span>
-          counterparty {addr} clean · {result.screening.description}
-        </span>
-      </div>
-    );
-  if (state === "off")
-    return (
-      <div className="screen-badge off">
-        <span className="icon">–</span>
-        <span>screening off: {result.screening.description}</span>
-      </div>
-    );
-  return null;
-}
-
-function VerdictBadge({ verdict }: { verdict: Verdict }) {
-  const meta = VERDICT_META[verdict];
+function Summary({ scan }: { scan: FleetScan }) {
+  const s = scan.stats;
+  const names = s.mountsLive === 1 ? "1 name" : `${s.mountsLive} names`;
   return (
-    <span className="badge" style={{ color: meta.color }}>
-      <span className="icon">{meta.icon}</span>
-      {meta.label}
-    </span>
-  );
-}
-
-function CheckRow({ check }: { check: VerifyResult["checks"][number] }) {
-  const unknown = check.screen === "unknown";
-  return (
-    <div className="check-row">
-      <span className="check-pill">{check.id}</span>
-      <span className={`check-status ${unknown ? "unknown" : check.pass ? "pass" : "fail"}`}>{unknown ? "N/A" : check.pass ? "PASS" : "FAIL"}</span>
-      <span className="check-body">
-        <div className="check-title">{check.title}</div>
-        <div className="check-detail">{check.detail}</div>
-      </span>
-    </div>
-  );
-}
-
-function DoorwayChip({ doorway, source }: { doorway: DoorwayResult; source: string | undefined }) {
-  const meta = VERDICT_META[doorway.verdict];
-  const state = screenState(doorway, source);
-  return (
-    <div className={`doorway-chip${doorway.isInput ? " is-input" : ""}`} style={{ ["--chip-color" as string]: meta.color }}>
-      <div className="name">{doorway.normalized ?? doorway.input}</div>
-      <div className="status">
-        <span className="icon">{meta.icon}</span>
-        {meta.label}
-        {doorway.isInput ? " (typed)" : ""}
-      </div>
-      <div className="detail">{doorway.summary}</div>
-      {state === "unknown" && <div className="chip-tag unavailable">? screening unavailable</div>}
-      {state === "flagged" && (
-        <div className="chip-tag flagged">{doorway.verdict === "orange" ? "⚠ flagged counterparty" : "⚠ settlement also flagged"}</div>
+    <p className="lede">
+      One agent fleet, mounted under <strong>{names}</strong>: <strong className="text-green">{s.endorsed} endorsed</strong>
+      {s.counterfeit > 0 && (
+        <>
+          , <strong className="text-red">{s.counterfeit} counterfeit</strong>
+        </>
       )}
-    </div>
+      . <strong>{s.agentsActive}</strong> of {s.agentsTotal} agents active.
+    </p>
   );
 }
 
 export default function Page() {
   const [input, setInput] = useState(DEFAULT_NAME);
   const [committed, setCommitted] = useState(DEFAULT_NAME);
-  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [result, setResult] = useState<VerifyApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [inputError, setInputError] = useState<string | null>(null);
   const [rpcDown, setRpcDown] = useState(false);
   const [blockNumber, setBlockNumber] = useState<string | null>(null);
+  const [scan, setScan] = useState<FleetScan | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [focus, setFocus] = useState<Focus>({ doorway: null, agent: null });
 
   const lastBlockRef = useRef<string | null>(null);
   const committedRef = useRef(committed);
   committedRef.current = committed;
-  const requestSeq = useRef(0);
+  const verifySeq = useRef(0);
+  const scanSeq = useRef(0);
+  // On a live chain a scan or lookup can outlast a block. A new block must not restart work that is still
+  // running for the same target, or the result would never land.
+  const verifyInFlight = useRef<string | null>(null);
+  const scanInFlight = useRef(false);
 
-  const runVerify = useCallback(async (name: string) => {
-    const seq = ++requestSeq.current;
+  const runVerify = useCallback(async (name: string, fromBlockTick = false) => {
+    if (fromBlockTick && verifyInFlight.current === name) return;
+    const seq = ++verifySeq.current;
+    verifyInFlight.current = name;
     setLoading(true);
     try {
       const res = await fetch(`/api/verify?name=${encodeURIComponent(name)}`, { cache: "no-store" });
       const body: unknown = await res.json();
-      if (seq !== requestSeq.current) return; // superseded by a newer request
+      if (seq !== verifySeq.current) return; // superseded by a newer request
       if (res.status === 502) {
         setRpcDown(true);
         return;
       }
       if (!res.ok || isApiError(body)) {
-        setInputError(isApiError(body) ? body.error : `error ${res.status}`);
+        setInputError(isApiError(body) ? body.error : `Request failed (${res.status})`);
         setResult(null);
         setRpcDown(false);
         return;
       }
       setRpcDown(false);
       setInputError(null);
-      setResult(body as VerifyResult);
+      setResult(body as VerifyApiResponse);
     } catch {
-      if (seq === requestSeq.current) setRpcDown(true);
+      if (seq === verifySeq.current) setRpcDown(true);
     } finally {
-      if (seq === requestSeq.current) setLoading(false);
+      if (seq === verifySeq.current) {
+        setLoading(false);
+        verifyInFlight.current = null;
+      }
     }
   }, []);
+
+  const runScan = useCallback(async () => {
+    if (scanInFlight.current) return;
+    scanInFlight.current = true;
+    const seq = ++scanSeq.current;
+    try {
+      const res = await fetch("/api/fleet", { cache: "no-store" });
+      const body: unknown = await res.json();
+      if (seq !== scanSeq.current) return;
+      if (!res.ok || isApiError(body)) {
+        setScanError(isApiError(body) ? body.error : `Request failed (${res.status})`);
+        return;
+      }
+      setScanError(null);
+      setScan(body as FleetScan);
+    } catch (err) {
+      if (seq === scanSeq.current) setScanError((err as Error).message);
+    } finally {
+      scanInFlight.current = false;
+    }
+  }, []);
+
+  const refreshAll = useCallback(() => {
+    void runScan();
+    if (committedRef.current) void runVerify(committedRef.current, true);
+  }, [runScan, runVerify]);
 
   // Debounce typing before committing a name to verify.
   useEffect(() => {
@@ -181,13 +129,13 @@ export default function Page() {
   useEffect(() => {
     if (!committed) {
       setResult(null);
-      setInputError("type an ENS name");
+      setInputError(null);
       return;
     }
     void runVerify(committed);
   }, [committed, runVerify]);
 
-  // Poll the block number every ~1s; re-verify the current name whenever it changes.
+  // Poll the block number every ~1s; re-scan and re-verify whenever it changes.
   useEffect(() => {
     let cancelled = false;
     async function poll() {
@@ -202,9 +150,7 @@ export default function Page() {
         const bn = (body as { blockNumber: string }).blockNumber;
         setRpcDown(false);
         setBlockNumber(bn);
-        if (lastBlockRef.current !== null && lastBlockRef.current !== bn && committedRef.current) {
-          void runVerify(committedRef.current);
-        }
+        if (lastBlockRef.current !== bn) refreshAll();
         lastBlockRef.current = bn;
       } catch {
         if (!cancelled) setRpcDown(true);
@@ -216,78 +162,130 @@ export default function Page() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [runVerify]);
+  }, [refreshAll]);
 
-  const verdictColor = result ? VERDICT_META[result.verdict].color : undefined;
+  const select = useCallback((name: string) => {
+    setInput(name);
+    setCommitted(name);
+  }, []);
 
   return (
-    <main>
-      <div className="top-row">
-        <div className="brand">
-          ENF <span>Ethereum Naming Fleet · one fleet, many doorways</span>
-        </div>
-        <div className={`ticker${rpcDown ? " down" : ""}`}>
-          <span className="dot" />
-          {rpcDown ? "RPC unavailable — retrying" : blockNumber ? `block ${blockNumber}` : "connecting…"}
-          {!rpcDown && result?.blockNumber ? ` · updated at block ${result.blockNumber}` : ""}
-        </div>
-      </div>
-
-      <div className="input-row">
-        <input
-          className="name-input"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-          aria-label="ENS name to verify"
-        />
-        <div className="input-note">{inputError ?? ""}</div>
-      </div>
-
-      {rpcDown ? (
-        <div className="rpc-card">
-          <div className="word">RPC UNAVAILABLE</div>
-          <div className="line">Retrying every second — no verdict is shown while the chain is unreachable.</div>
-        </div>
-      ) : (
-        <div className={`verdict-card${loading && !result ? " loading" : ""}`} style={{ ["--card-color" as string]: verdictColor }}>
-          {result ? (
-            <>
-              <VerdictBadge verdict={result.verdict} />
-              <div className="summary">{result.summary}</div>
-              <div className="subname">{result.normalized ?? result.input}</div>
-              <ScreeningLine result={result} />
-            </>
-          ) : (
-            <div className="summary">Verifying…</div>
-          )}
-        </div>
-      )}
-
-      {result && result.checks.length > 0 && (
-        <div className="checks">
-          <h2>C1 – C5</h2>
-          {result.checks.map((c) => (
-            <CheckRow key={c.id} check={c} />
-          ))}
-        </div>
-      )}
-
-      {result && result.doorways.length > 0 && (
-        <div className="doorways">
-          <h2>Doorways</h2>
-          <div className="doorway-strip">
-            {result.doorways.map((d) => (
-              <DoorwayChip key={d.normalized ?? d.input} doorway={d} source={result.screening?.source} />
-            ))}
+    <>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-name">ENF</span>
+            <span className="brand-sub">Ethereum Naming Fleet</span>
           </div>
-          {result.doorwaysSkipped.length > 0 && (
-            <div className="skipped">not verified (fan-out cap): {result.doorwaysSkipped.join(", ")}</div>
-          )}
+          <form
+            className="search"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setCommitted(input.trim());
+            }}
+          >
+            <label htmlFor="name-search" className="sr-only">
+              Verify an ENS name
+            </label>
+            <MagnifyingGlass size={18} weight="bold" className="search-icon" aria-hidden />
+            <input
+              id="name-search"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="off"
+              placeholder="Verify a name, e.g. kai.support.scam.eth"
+              aria-describedby={inputError ? "search-error" : undefined}
+            />
+            {inputError && (
+              <span id="search-error" className="search-error" role="alert">
+                {inputError}
+              </span>
+            )}
+          </form>
+          <div className={`block-pill${rpcDown ? " down" : ""}`} aria-live="polite">
+            {rpcDown ? (
+              <>
+                <WarningCircle size={16} weight="bold" aria-hidden /> RPC unreachable
+              </>
+            ) : blockNumber ? (
+              <>
+                <span className="live" aria-hidden /> Block <span className="num">{fmtBlock(blockNumber)}</span>
+              </>
+            ) : (
+              "Connecting"
+            )}
+          </div>
         </div>
-      )}
-    </main>
+      </header>
+
+      <main className="page">
+        {rpcDown && (
+          <p className="notice tone-orange banner" role="alert">
+            The chain RPC is not answering. Retrying every second; what you see is from the last block that could be read.
+          </p>
+        )}
+
+        <div className="title-row">
+          <div className="title-text">
+            {scan ? (
+              <>
+                <h1 className="page-title">{scan.canonical ?? "ENF fleet"}</h1>
+                <Summary scan={scan} />
+              </>
+            ) : (
+              <div className="stack">
+                <Skeleton h={34} w={280} />
+                <Skeleton h={20} w={460} />
+              </div>
+            )}
+          </div>
+          {scan && <CopyChip label="Fleet registry" value={scan.fleetRegistry} display={shortAddr(scan.fleetRegistry)} />}
+        </div>
+
+        <div className="layout">
+          <div className="col-main">
+            <Card
+              id="map-h"
+              title="Fleet map"
+              aside={
+                <span className="legend">
+                  <span className="lg endorsed" /> Endorsed <span className="lg counterfeit" /> Counterfeit <span className="lg dead" /> Not live
+                </span>
+              }
+              className="map-card"
+            >
+              {scan ? (
+                <FleetMap scan={scan} focus={focus} onFocus={setFocus} onSelect={select} />
+              ) : scanError ? (
+                <p className="empty">{scanError}</p>
+              ) : (
+                <Skeleton h={340} r={14} />
+              )}
+            </Card>
+            <div className="duo">
+              {scan ? (
+                <>
+                  <Coverage scan={scan} selected={result?.normalized ?? null} focus={focus} onFocus={setFocus} onSelect={select} />
+                  <Activity scan={scan} />
+                </>
+              ) : (
+                <>
+                  <Skeleton h={260} r={16} />
+                  <Skeleton h={260} r={16} />
+                </>
+              )}
+            </div>
+          </div>
+          <div className="col-side">
+            <Controls scan={scan} onDone={refreshAll} />
+            <Inspector result={result} loading={loading} onSelect={select} />
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

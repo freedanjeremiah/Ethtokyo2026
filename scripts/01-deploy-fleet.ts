@@ -21,6 +21,8 @@ async function main() {
     sharedResolver: resolver.address,
     vendor: actorAddress("VENDOR"),
     operator: actorAddress("OPERATOR"),
+    // Only known when this run deployed it; an existing fleet keeps the value already recorded.
+    ...(fleet.deployBlock !== undefined ? { deployBlock: fleet.deployBlock } : {}),
   });
   console.log(`wrote ${path}`);
 }
