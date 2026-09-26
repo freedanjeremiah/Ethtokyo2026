@@ -210,3 +210,101 @@ Framing: *is the doorway endorsed* (ENS) × *is the party clean* (Intercepta). S
 | Intercepta (gated) | 9–11 |
 | Curvegrid | 0.5 (–2 stretch) |
 | Buffer / submission | remainder |
+
+---
+
+## Part E — Executable task list (subagent-driven)
+
+Parts B–D are the narrative. This part is the binding, task-by-task version used for execution. Each task ends with a commit.
+
+### Global Constraints
+
+- **Chain:** everything is built and tested against an **anvil fork of Sepolia**. Default fork RPC: `https://ethereum-sepolia-rpc.publicnode.com` (override with env `SEPOLIA_RPC_URL`). Live-Sepolia runs need funded keys and are performed by the human later; every script must take its RPC URL from env (`RPC_URL`, default `http://127.0.0.1:8545`) so the same script works on live Sepolia.
+- **Use real ENSv2 contracts.** No custom registry, no custom resolver, no mocks of ENS contracts. Deploy the fleet UserRegistry via the real deployed factory.
+- **No hardcoded ENS addresses** in app/verifier code. All addresses + ABIs live in `deployments/sepolia.json` (+ `deployments/abis/*.json`), produced by Task 2.
+- **Topology (non-negotiable):** parent nodes (`support.<parent>.eth`) get `setSubregistry` only; their resolver stays `0x0`. The shared resolver is attached to members at `register()`. Members never hold setter roles on the shared resolver; only the operator key does.
+- **ENS correctness rules:** normalize every name input with viem's `normalize` (ENSIP-15); never `toLowerCase()` a name; never gate on `.eth`; resolve records via the UniversalResolver path (viem `getEnsAddress` / `getEnsText`, viem ≥ 2.35).
+- **Keys:** fresh keys only (never anvil default mnemonic accounts). Keys live in `.env.local` (gitignored). Never commit a private key. Never ship keys to the browser.
+- **Tooling:** Node 24, **npm workspaces** (no pnpm), TypeScript (ESM), viem ≥ 2.35, vitest for TS tests, Foundry (`~/.foundry/bin/forge`, `anvil`, `cast`) for Solidity/fork tests, Next.js App Router for the UI.
+- **Actors / labels:** vendor `vendor.eth`, merchants `shopa.eth`, `shopb.eth`, attacker `scam.eth`; mount label `support`; agents `mia`, `kai`, `rin`. Canonical name `support.vendor.eth`.
+- **Roster record keys** (in the shared resolver's default `0x00` bundle unless Task 2 proves text keys can't live there): `mount.canonical` = `support.vendor.eth`; `mount.parents` = comma-separated normalized parent names, e.g. `support.vendor.eth,support.shopa.eth,support.shopb.eth`. Plus `addr(60)` = fleet settlement address, and ENSIP-26 `agent-context`, `agent-endpoint[web]`.
+- **Verdicts:** `green` (all checks pass), `red` (resolves but C2 canonical-registry or C3 two-sided-consent fails), `orange` (C5 screening flagged), `black` (not a member: ResolverNotFound / no resolver / token missing or expired). Check ids `C1`..`C5` exactly as in Part A §A4.
+- **Out of scope for autonomous execution:** funding keys, registering names on live Sepolia, deploying to Vercel, recording video.
+
+### Task 1: Repo scaffold
+
+Create the monorepo skeleton.
+- Root `package.json` (private, `"type": "module"`, npm workspaces `packages/*`, `app`, `scripts`), root `tsconfig.base.json` (strict, ESM, `moduleResolution: bundler`).
+- `contracts/` Foundry project (`forge init --no-git --no-commit` equivalent layout; `foundry.toml` with `fs_permissions` read for `../deployments`, rpc_endpoints `sepolia = "${SEPOLIA_RPC_URL}"`). Remove the Counter example.
+- `.env.example` documenting `SEPOLIA_RPC_URL`, `RPC_URL`, `VENDOR_PK`, `OPERATOR_PK`, `SHOPA_PK`, `SHOPB_PK`, `SCAM_PK`, `MIA_PK`, `KAI_PK`, `RIN_PK`, `SETTLEMENT_ADDRESS`, `INTERCEPTA_API_KEY`.
+- `scripts/fork.sh`: starts `anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com} --chain-id 11155111 --port 8545`.
+- Extend `.gitignore` for Foundry `out/`, `cache/`, `broadcast/`, Next `.next/`.
+- **Acceptance:** `npm install` succeeds; `~/.foundry/bin/forge build` in `contracts/` succeeds (empty is fine).
+
+### Task 2: ENSv2 discovery and ABI pinning (foundational)
+
+The whole project depends on this task being **true**. Research, do not guess.
+- Find the current ENSv2 deployment on Sepolia (docs.ens.domains/learn/deployments, github.com/ensdomains — the ENSv2 contracts repo and its deployments folder, ensjs v2 branches). Identify: root registry, `.eth` registry/registrar, the UserRegistry factory (and UserRegistry implementation), the resolver implementation that supports default record `0x00` and `linkToNode`/`linkToRecord` (and its factory), UniversalResolver (v2), and the role/permission model.
+- For each: address, verified ABI (from explorer or repo artifacts), and **verify on-chain** that code exists at the address (`cast code`) and a representative view call works against Sepolia.
+- Document exact signatures and semantics in `docs/ensv2-notes.md`: how to register a `.eth` name on a fork (or how to impersonate/prank an owner), how to deploy a UserRegistry via the factory, `setSubregistry`, `setResolver`, `register` on a UserRegistry (args incl. owner, resolver, expiry, roles), unregister/burn, how the default record `0x00` works for addr and text, `linkToNode`/`linkToRecord`, role bitmaps (the 4-bit nybble role-count packing), `getState` field order, expiry semantics, and soulbound/transfer-role mechanics. Cite source file + line/commit for each claim.
+- Write `deployments/sepolia.json` (`{ chainId, contracts: { <name>: { address, abi: "abis/<name>.json" } } }`) and `deployments/abis/*.json`.
+- Add `scripts/check-deployment.ts` that loads the JSON and does one view call per contract against `RPC_URL`, printing OK/FAIL.
+- If any primitive in `idea.md` §2 (multi-mount, default record, linkToNode) does **not** exist in the deployed contracts, record exactly what exists instead under a `## Deviations` heading — do not paper over it.
+- **Acceptance:** `node --experimental-strip-types scripts/check-deployment.ts` (or `npx tsx`) prints OK for every contract against the public Sepolia RPC.
+
+### Task 3: Fork harness and world setup library
+
+A reusable TS library that builds the demo world on an anvil fork.
+- `scripts/lib/env.ts`: load `.env.local`, clients (viem public + wallet) from `RPC_URL`.
+- `scripts/00-keys.ts`: generate fresh keys for all actors into `.env.local` (refuse to overwrite existing keys unless `--force`); on a local anvil (chainId 11155111 + `anvil_setBalance` supported) fund them with 100 ETH each.
+- `scripts/lib/names.ts`: obtain `vendor.eth`, `shopa.eth`, `shopb.eth`, `scam.eth` for the right actor — on a fork via the real registrar flow or via `anvil_impersonateAccount` of the registrar controller/owner per `docs/ensv2-notes.md`; on live Sepolia via the real registrar flow (commit/reveal if required).
+- **Acceptance:** with anvil fork running, `npx tsx scripts/00-keys.ts && npx tsx scripts/setup-names.ts` leaves each `.eth` name owned by the right fresh key, printed and verified by reading the registry.
+
+### Task 4: Fleet setup scripts (deploy, mount, register, records)
+
+Idempotent scripts per Part B repo layout, built on Task 3's lib:
+- `01-deploy-fleet.ts`: deploy fleet UserRegistry via the real factory (owner = vendor), deploy/obtain the shared resolver (operator holds setter roles; members none), write resulting addresses to `deployments/fleet.<chainId>.json`.
+- `02-mount.ts`: for each of vendor/shopa/shopb/scam create `support.<parent>.eth` with subregistry = fleet registry and **resolver = 0x0**.
+- `03-register.ts`: register `mia`, `kai`, `rin` in the fleet registry, owner = agent key, resolver = shared resolver, no setter roles.
+- `04-records.ts`: operator writes the default `0x00` bundle: addr(60)=`SETTLEMENT_ADDRESS` (default: operator-derived fresh address), `mount.canonical`, `mount.parents` (vendor, shopa, shopb — **not** scam), `agent-context`, `agent-endpoint[web]`.
+- `demo-unmount.ts <parent>`, `demo-unregister.ts <label>`, `demo-counterfeit.ts` (idempotently ensures scam mount exists), `demo-reset.ts` (remount shopb, re-register mia).
+- `setup-all.ts` runs names + 01–04 in order.
+- **Acceptance:** after `setup-all`, a clean script using only stock viem `getEnsAddress`/`getEnsText` resolves `mia.support.shopa.eth`, `mia.support.shopb.eth`, `mia.support.vendor.eth`, `mia.support.scam.eth` to the settlement address, and `nobody.support.shopa.eth` and `support.shopa.eth` return null / ResolverNotFound.
+
+### Task 5: Foundry fork tests (the claims)
+
+`contracts/test/Mount.t.sol` forking Sepolia via `vm.createSelectFork("sepolia")`, using addresses from `deployments/sepolia.json` (`vm.readFile` + `vm.parseJson`). Each bullet of Part B Phase 1 is one test function:
+`test_oneTokenThreeMounts`, `test_nonMemberAndParentHaveNoResolver`, `test_defaultBundleZeroMemberWrites`, `test_merchantUnmountKillsOnlyItsDoorway`, `test_vendorUnregisterKillsAllDoorways`, `test_parentLapseKillsOnlyThatDoorway`, `test_soulboundEvenViaApprovedOperator`, `test_memberCannotWriteSharedResolver`, `test_scopedMemberRoleWouldRewriteEveryone` (documents the hazard), `test_counterfeitMountResolves`.
+Resolution assertions go through the real UniversalResolver.
+- **Acceptance:** `cd contracts && SEPOLIA_RPC_URL=… ~/.foundry/bin/forge test` all green.
+
+### Task 6: Verifier package
+
+`packages/verifier` (ESM TS, vitest) implementing Part A §A4 exactly.
+- `verify(client, name, opts?) → { input, normalized, verdict, checks: {id, pass, detail}[], resolved: { address?, canonical?, parents?[] }, doorways: DoorwayResult[] }`.
+- Registry walk reads from ENSv2 registries using `deployments/*.json` (injected, not hardcoded). Records via UniversalResolver (viem).
+- C1 member token alive; C2 doorway registry == canonical registry; C3 doorway parent ∈ `mount.parents`; C4 parent not expired; C5 via optional injected `screen(address)` (absent → C5 omitted, not failed).
+- `doorways`: for each name in `mount.parents` plus the typed parent, verdict for `<label>.<parent>`.
+- Vitest integration tests against the fork (skip with a clear message if `RPC_URL` unreachable) for: green (shopa), red (scam), black (nobody.support.shopa.eth, support.shopa.eth), black after unmount (shopb), black-everywhere after unregister. Unit tests for pure logic (verdict aggregation) with no network.
+- `scripts/verify.ts <name>` CLI printing a table.
+- **Acceptance:** `npm test -w packages/verifier` green with anvil fork + `setup-all` done.
+
+### Task 7: Single-screen UI
+
+`app/` Next.js App Router.
+- Server-side route `app/api/verify/route.ts` calling the verifier (RPC from env; screening key server-only).
+- Page: one input, big verdict card (green/red/orange/black) with C1–C5 list and failure reasons, doorway strip for every declared mount plus the typed doorway, block number ticker; re-verifies on every new block (poll `/api/verify` on block change via a lightweight `/api/block` or client-side `watchBlockNumber` against a public RPC env).
+- Large type, dark theme, readable at 3 m. No demo action buttons, no keys in the client.
+- **Acceptance:** `npm run build -w app` succeeds; with fork + setup, `npm run dev -w app` renders green for `mia.support.shopa.eth` and red for `mia.support.scam.eth` (verify with Playwright screenshot).
+
+### Task 8: Intercepta screening adapter (gated — only after Tasks 1–7 complete)
+
+- Research Intercepta's public docs/API. If a public API exists: implement `packages/verifier/src/screen/intercepta.ts` matching it, server-side only, key from `INTERCEPTA_API_KEY`, per-address cache. If no public API is findable: implement the `Screen` interface with an `intercepta` adapter stub that returns `{status:"unknown", reason:"INTERCEPTA_API_KEY not set / API not configured"}` plus a `static-list` adapter (flagged addresses from env `SCREEN_FLAGGED`) used for the demo, and document in `docs/intercepta.md` exactly what must be filled at the event.
+- Wire C5 + orange verdict into verifier and UI; `unknown` shows as unknown, never green.
+- `scripts/demo-dirty-settlement.ts` / `demo-clean-settlement.ts`: operator flips default `addr(60)` to a flagged/clean address.
+- Tests for the full truth table (Part A §A4), incl. counterfeit mount with clean address → red.
+
+### Task 9: README and Curvegrid section
+
+- `README.md`: pitch, architecture diagram (A2), demo runbook (fork + live Sepolia steps, exact commands), truth table, "Why it's new", known limitations (counterfeit mounts detectable, not preventable), ENS correctness notes, and a "MOUNT for AI agents" section for Curvegrid (agents as namespaces, ENSIP-26 discovery via default bundle, hire/fire with one tx). Contract addresses table sourced from `deployments/`.
+- **Acceptance:** every command in the runbook was executed at least once in this task and works as written.
