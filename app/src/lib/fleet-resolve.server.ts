@@ -103,7 +103,9 @@ const cache = new Map<string, { at: number; value: ResolvedFleet }>();
 function demoFleet(): ResolvedFleet {
   const f = readFleetFile();
   if (!f.vendor || !f.operator) throw new FleetNotFoundError("the demo fleet file has no vendor/operator. Run scripts/setup-all.ts.");
-  const clean = serverEnv("SETTLEMENT_ADDRESS") || f.settlementAddress;
+  // The fleet file records the address this fleet was set up with; a stale .env.local (e.g. fork keys) must not
+  // make clean/reset point the live fleet somewhere else.
+  const clean = f.settlementAddress || serverEnv("SETTLEMENT_ADDRESS");
   if (!clean) throw new FleetNotFoundError("no clean settlement address for the demo fleet.");
   return {
     canonical: DEMO_FLEET,
