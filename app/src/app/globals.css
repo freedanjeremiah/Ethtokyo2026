@@ -327,12 +327,15 @@ input {
 }
 
 /* Grid items are flat (Inspector, .col-main, Controls) so mobile DOM order can equal visual
-   order (see the 820px block below); desktop/tablet place them back into two columns with
-   explicit grid-row/column so .col-main's height never gets tied to Controls/Inspector's. */
+   order (see the 820px block below), and DOM order also matches desktop reading order: the
+   Inspector (the searched name's verdict) sits at the top of the right column, directly under
+   the search bar, before the main column, before Kill switches. Row 2 is `1fr` (not `auto`) so
+   any surplus height from .col-main spanning both rows lands below Controls, never as a gap
+   between Inspector and Controls. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -351,11 +354,11 @@ input {
   grid-column: 2;
 }
 
-.controls {
+.inspector {
   grid-row: 1;
 }
 
-.inspector {
+.controls {
   grid-row: 2;
 }
 
@@ -1202,16 +1205,17 @@ input {
 @media (max-width: 1180px) {
   .layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto; /* col-main doesn't span here, so no fr trick needed */
   }
   .col-main {
     grid-column: 1 / -1;
     grid-row: 1;
   }
-  .controls {
+  .inspector {
     grid-column: 1;
     grid-row: 2;
   }
-  .inspector {
+  .controls {
     grid-column: 2;
     grid-row: 2;
   }
