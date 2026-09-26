@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAddress } from "viem";
 import { FleetFileMissingError, getDeployment, getScanContracts, getScreening, readFleetFile } from "@/lib/deployment.server";
-import { rpcClient } from "@/lib/rpc.server";
+import { rpcClient, rpcErrorMessage } from "@/lib/rpc.server";
 import { scanFleet } from "@/lib/fleet-scan.server";
 
 export const runtime = "nodejs";
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     );
     return NextResponse.json({ ...scan, screening: { source: screening.source, description: screening.description } });
   } catch (err) {
-    const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    const message = rpcErrorMessage(err);
     return NextResponse.json({ error: `RPC unavailable: ${message}` }, { status: 502 });
   }
 }

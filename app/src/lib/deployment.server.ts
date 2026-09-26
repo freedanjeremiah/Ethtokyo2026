@@ -33,9 +33,19 @@ function readRootEnvValue(key: string): string | undefined {
   return undefined;
 }
 
+/** A server setting: process.env wins; else the repo-root .env.local (so a plain `next dev` picks it up). */
+export function serverEnv(key: string): string | undefined {
+  return process.env[key] || readRootEnvValue(key) || undefined;
+}
+
 /** process.env.RPC_URL wins; else RPC_URL from the repo-root .env.local; else the local fork default. */
 export function getRpcUrl(): string {
-  return process.env.RPC_URL || readRootEnvValue("RPC_URL") || "http://127.0.0.1:8545";
+  return serverEnv("RPC_URL") || "http://127.0.0.1:8545";
+}
+
+/** A local node (127.0.0.1 / localhost), i.e. the anvil fork. */
+export function isLocalRpc(url: string): boolean {
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url);
 }
 
 function readJson<T>(path: string): T {
@@ -84,8 +94,7 @@ export class FleetFileMissingError extends Error {}
 export function fleetFilePath(): string {
   const envFile = process.env.FLEET_FILE;
   if (envFile) return resolve(REPO_ROOT, envFile);
-  const local = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(getRpcUrl());
-  return resolve(REPO_ROOT, local ? "deployments/fleet.anvil.json" : "deployments/fleet.11155111.json");
+  return resolve(REPO_ROOT, isLocalRpc(getRpcUrl()) ?"deployments/fleet.anvil.json" : "deployments/fleet.11155111.json");
 }
 
 export type FleetFile = {
@@ -97,6 +106,9 @@ export type FleetFile = {
   parentRegistries: Record<string, string>;
   settlementAddress: string;
   chainKind: string;
+  /** Fleet registry owner and shared-resolver operator: the addresses that sign the kill switches. */
+  vendor?: string;
+  operator?: string;
   /** Block the fleet registry was deployed in, written by scripts/01-deploy-fleet.ts. */
   deployBlock?: number;
 };

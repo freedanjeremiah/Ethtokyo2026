@@ -16,7 +16,7 @@
 import { NextResponse } from "next/server";
 import { verify, type VerifyResult } from "@enf/verifier";
 import { FleetFileMissingError, type FleetFile, getDeployment, getScreening, readFleetFile } from "@/lib/deployment.server";
-import { rpcClient } from "@/lib/rpc.server";
+import { rpcClient, rpcErrorMessage } from "@/lib/rpc.server";
 import type { VerifyApiResponse } from "@/lib/api-types";
 
 // Same name at the same block => one verification, shared by concurrent requests.
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     blockNumber = blockParam !== null ? BigInt(blockParam) : await client.getBlockNumber({ cacheTime: 2_000 });
     result = await cachedVerify(`${name}|${blockNumber}|${screening.source}`, () => verify(client, name, { deployment, screen, blockNumber }));
   } catch (err) {
-    const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    const message = rpcErrorMessage(err);
     return NextResponse.json({ error: `RPC unavailable: ${message}` }, { status: 502 });
   }
 
