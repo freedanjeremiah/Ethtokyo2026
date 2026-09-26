@@ -64,7 +64,7 @@ resolver, which would have falsified the whole demo the moment a judge typed a m
 | `deployments/sepolia.json` + `deployments/abis/*.json` | Pinned ENSv2 contract addresses/ABIs on Sepolia (Task 2). All app/verifier/script code reads addresses from here — nothing is hardcoded. |
 | `scripts/` | Setup and demo scripts (TypeScript, `tsx`, viem). Actor keys and RPC config in `.env.local`. |
 | `packages/verifier/` | `@enf/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
-| `app/` | Next.js fleet dashboard (`app/src/app/page.tsx`, `app/src/components/`): live topology graph, agent × doorway verdict grid, on-chain timeline, the single-name verifier as inspector, and fork-only kill-switch buttons. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (runs `scripts/demo-*.ts`; refused unless the RPC is anvil and not on Vercel; `ENF_KILL_SWITCHES=off` disables). |
+| `app/` | Next.js app. `/` is the landing page (`app/src/app/page.tsx`). `/editor` is the playbook editor (`app/src/app/editor/page.tsx`, `app/src/components/WorkflowCanvas.tsx`): build the demo as a node workflow on a canvas (check a name, unmount, fire, sanctioned/clean settlement, counterfeit mount, reset), wire nodes together, branch a check on "As expected" / "Otherwise", run it with each transaction signed in the browser wallet, save them in the browser or share them as a link, beside the live topology graph, agent × doorway verdict grid, on-chain timeline and the single-name verifier. Old `/?name=` links redirect to `/editor`. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (plans the kill-switch transactions for the browser wallet to sign; the server holds no keys; `ENF_KILL_SWITCHES=off` disables). |
 | `contracts/` | Foundry fork tests (`contracts/test/Mount.t.sol`) exercising the real deployed ENSv2 contracts — no mocks. |
 | `docs/ensv2-notes.md` | Pinned ENSv2 deployment research: addresses, `getState` field order, role bit layout, resolution semantics — all VERIFIED-ONCHAIN or VERIFIED-SOURCE against the live deployment. |
 | `docs/intercepta.md` | Intercepta (Web3 Antivirus) API research and the C5 screening design. |
@@ -344,19 +344,21 @@ npx tsx scripts/setup-all.ts                                 # ~6 min: each .eth
 npx tsx scripts/check-resolution.ts
 ```
 
-**Dashboard on live Sepolia** (local server; kill switches send real transactions from the demo keys):
+**Dashboard on live Sepolia:**
 
 ```bash
 cd app
-RPC_URL=https://sepolia.gateway.tenderly.co \
-ACTIONS_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com \
-ENF_KILL_SWITCHES=live npx next dev -p 3100
+npx next dev -p 3100
 ```
 
-- `RPC_URL` serves the dashboard's reads; it must allow `eth_getLogs` from the fleet's deploy block
-  (publicnode's free tier rate-limits `eth_getLogs`; Tenderly's public gateway serves it).
-- `ACTIONS_RPC_URL` carries the kill-switch transactions so they do not share a rate limit with the reads.
-- `ENF_KILL_SWITCHES=live` is required before the buttons act on a live chain; they are always off on Vercel.
+- Reads use `RPC_URL` (shell, else the repo-root `.env.local`) and fall through to backup public Sepolia RPCs
+  (Tenderly's gateway, 0xrpc.io) when it fails. The mount scan needs an address-less `eth_getLogs`, which
+  publicnode's free tier rejects, so publicnode alone cannot serve the dashboard.
+- Kill switches are signed in **your browser wallet** (e.g. MetaMask on Sepolia). The server holds no private keys: it
+  reads the chain, returns the unsigned transactions with the address that must sign each, and simulates them.
+  Import the demo accounts you want to act as into the wallet (a shop's owner to unmount its doorway, the vendor
+  to fire an agent, the operator for the settlement address); the dashboard asks you to switch accounts when a
+  step needs a different signer. `ENF_KILL_SWITCHES=off` hides them.
 - A block is ~12 s on Sepolia and a full scan takes ~10 s, so a kill switch shows up on the dashboard
   within about 30 s of the click.
 

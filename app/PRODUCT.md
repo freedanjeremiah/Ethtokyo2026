@@ -16,7 +16,7 @@ ENF (Ethereum Naming Fleet) shows one ENSv2 agent-fleet registry mounted under s
 Namespace aliasing is documented by ENS and built by nobody else: one registry reachable under several parents, with two kill switches owned by opposite parties, and a verifier that tells endorsed doorways from counterfeit ones using only stock ENS reads.
 
 ## Operating Context
-- Live demo on an anvil fork of Sepolia (kill switches enabled) or live Sepolia (kill switches off, read-only).
+- Live demo on live Sepolia or an anvil fork of it; kill switches are signed in the presenter's browser wallet.
 - Demo script: resolve a live agent (green) -> merchant unmounts (its doorway dies next block) -> vendor fires an agent (dies under every doorway) -> type the counterfeit `kai.support.scam.eth` (resolves, flagged red because the fleet never endorsed that parent) -> optional: settlement address pointed at a flagged address (endorsed doorways turn orange).
 - Data refreshes every block; everything shown is read from chain at one pinned block.
 
@@ -24,7 +24,7 @@ Namespace aliasing is documented by ENS and built by nobody else: one registry r
 - Verdicts: green (endorsed, clean), red (counterfeit mount: C2 canonical registry or C3 two-sided consent fails), orange (endorsed doorway, flagged settlement counterparty via C5 screening), black (not a member / dead).
 - Checks C1 member token alive, C2 canonical registry match, C3 two-sided consent (parent listed in `enf.parents`), C4 doorway alive, C5 counterparty screening (optional).
 - Mounts are discovered from `SubregistryUpdated` logs, not config; agents from `LabelRegistered` logs; timeline from registry and resolver events.
-- Kill switches run only against an anvil fork, never on Vercel or live chains.
+- Kill switches never use server-held keys: the server plans the transactions and the browser wallet signs them.
 - Terminology: fleet, agent (mia, kai, rin), doorway (`support.<parent>.eth`), vendor, merchant, operator, settlement address, default record.
 
 ## Brand Commitments

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-26T11:34:03.533Z",
+  "generatedAt": "2026-09-26T16:06:02.000Z",
   "title": "Design System: ENF (Ethereum Naming Fleet)",
   "extensions": {
     "colorMeta": {
@@ -371,11 +371,11 @@
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "Page title (the fleet's canonical name); 28px under 820px."
+        "purpose": "Editor page title (the fleet's canonical name); 28px under 820px."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Inspected name in the verifier panel."
+        "purpose": "Inspected name in the verifier panel and the editable playbook title."
       },
       "title": {
         "displayName": "Title",
@@ -391,7 +391,7 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Section labels, buttons, chips, table headers, activity lines."
+        "purpose": "Section labels, buttons, chips, menu items, table headers, activity lines."
       },
       "tag": {
         "displayName": "Tag",
@@ -399,11 +399,23 @@
       },
       "meta": {
         "displayName": "Meta",
-        "purpose": "Activity block/time lines, check IDs, input errors."
+        "purpose": "Activity block/time lines, check IDs, input errors, field labels and menu headings (700), step signers."
       },
       "mono": {
         "displayName": "Mono",
         "purpose": "Addresses, hashes and raw check evidence only."
+      },
+      "hero-display": {
+        "displayName": "Hero Display",
+        "purpose": "Landing headline only."
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "purpose": "Landing section heads and the closing band; mechanism titles use 900 at 24px."
+      },
+      "step-title": {
+        "displayName": "Step Title",
+        "purpose": "Playbook step and preview-card titles."
       }
     },
     "icons": {
@@ -428,12 +440,27 @@
       {
         "name": "selection-ring",
         "value": "0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent)",
-        "purpose": "Selected coverage cell, with a blue border."
+        "purpose": "With a blue border: selected coverage cell, active or running step card, focused playbook title and fields, highlighted phone-preview row."
       },
       {
         "name": "live-ring",
         "value": "0 0 0 3px color-mix(in srgb, var(--green-line) 22%, transparent)",
         "purpose": "Live block dot."
+      },
+      {
+        "name": "menu-float",
+        "value": "0 12px 32px -8px rgb(24 24 32 / 0.18), 0 2px 6px rgb(24 24 32 / 0.06)",
+        "purpose": "Popover menus only; the one soft shadow in the system."
+      },
+      {
+        "name": "drop-line",
+        "value": "0 -3px 0 0 var(--blue)",
+        "purpose": "Line above the step a dragged step will land before."
+      },
+      {
+        "name": "wallet-focus",
+        "value": "0 0 0 4px color-mix(in srgb, var(--blue) 30%, transparent)",
+        "purpose": "Focused wallet pill."
       }
     ],
     "focus": {
@@ -443,7 +470,7 @@
     "backdrop": {
       "name": "topbar",
       "value": "color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(160%) blur(10px)",
-      "purpose": "Sticky translucent top bar."
+      "purpose": "Sticky translucent top bar (editor) and landing nav."
     },
     "motion": [
       {
@@ -454,17 +481,17 @@
       {
         "name": "hover",
         "value": "160ms",
-        "purpose": "Hover, border and background changes."
+        "purpose": "Hover, border and background changes; popover fade-in from -4px."
       },
       {
         "name": "state",
         "value": "300ms",
-        "purpose": "Verdict colour changes on cells and map strokes."
+        "purpose": "Verdict colour changes on cells and map strokes; landing preview verdict reveal."
       },
       {
         "name": "dim",
         "value": "200ms",
-        "purpose": "Focus dimming and caret rotation."
+        "purpose": "Focus dimming, caret rotation, step and preview-chip ring changes."
       },
       {
         "name": "changed-pulse",
@@ -479,10 +506,22 @@
       {
         "name": "reduced-motion",
         "value": "none",
-        "purpose": "All animation and transition disabled under prefers-reduced-motion."
+        "purpose": "All animation and transition disabled under prefers-reduced-motion; the landing preview shows its finished state instead of replaying."
       }
     ],
     "breakpoints": [
+      {
+        "name": "editor-duo-side-by-side",
+        "value": "1680px (min-width)"
+      },
+      {
+        "name": "editor-single-column",
+        "value": "1100px"
+      },
+      {
+        "name": "landing-single-column",
+        "value": "1040px"
+      },
       {
         "name": "side-column-drops",
         "value": "1180px"
@@ -497,20 +536,54 @@
       }
     ],
     "layout": {
-      "maxWidth": "1360px",
-      "sideColumn": "400px",
-      "topbarHeight": "76px",
-      "searchMaxWidth": "560px"
+      "editor": {
+        "maxWidth": "1640px",
+        "playbookColumn": "420px",
+        "gap": "24px",
+        "playbookStickyTop": "92px",
+        "topbarHeight": "76px",
+        "searchMaxWidth": "560px"
+      },
+      "landing": {
+        "maxWidth": "1240px",
+        "navHeight": "72px",
+        "heroSplit": "4.6fr / 7.4fr",
+        "mechSplit": "5fr / 7fr",
+        "closeSplit": "7fr / 5fr",
+        "sectionGap": "56px"
+      },
+      "legacyDashboard": {
+        "maxWidth": "1360px",
+        "sideColumn": "400px",
+        "note": "Styles remain in globals.css; the single-route dashboard was replaced by /editor."
+      }
+    },
+    "fontWeights": {
+      "shipped": [
+        400,
+        500,
+        700,
+        900
+      ],
+      "note": "Satoshi is self-hosted at these four weights only; do not specify others."
     }
   },
   "components": [
     {
-      "name": "Kill Switch (Action Button)",
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The page's one solid button (Open editor, Run playbook): white on Blue Deep at about 5.9:1; hover mixes toward Ink.",
+      "html": "<button type=\"button\" class=\"ds-btn-p\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z\"/></svg>Run playbook</button>",
+      "css": ".ds-btn-p { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid transparent; background: var(--blue-strong, #1a5fd0); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), transform 120ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-btn-p:hover { background: color-mix(in srgb, var(--blue-strong, #1a5fd0) 86%, var(--text, #1e1e21)); } .ds-btn-p:active { transform: scale(0.97); } .ds-btn-p:focus-visible { outline: 2px solid var(--blue, #3889ff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Action Button (Secondary)",
       "kind": "button",
       "refersTo": "button-action",
-      "description": "ENS secondary pill for every kill switch; only the bold icon carries the red (destructive) or orange (warning) cue.",
-      "html": "<button type=\"button\" class=\"ds-btn ds-btn-action\"><svg class=\"ds-icon-danger\" width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M195.8,60.2a28,28,0,0,0-39.51-.09L144.68,72.28a12,12,0,1,1-17.36-16.56L139,43.43l.2-.2a52,52,0,0,1,73.54,73.54l-.2.2-12.29,11.71a12,12,0,0,1-16.56-17.36l12.17-11.61A28,28,0,0,0,195.8,60.2ZM111.32,183.72,99.71,195.89a28,28,0,0,1-39.6-39.6l12.17-11.61a12,12,0,0,0-16.56-17.36L43.43,139l-.2.2a52,52,0,0,0,73.54,73.54l.2-.2,11.71-12.29a12,12,0,1,0-17.36-16.56ZM216,148H192a12,12,0,0,0,0,24h24a12,12,0,0,0,0-24ZM40,108H64a12,12,0,0,0,0-24H40a12,12,0,0,0,0,24Zm120,72a12,12,0,0,0-12,12v24a12,12,0,0,0,24,0V192A12,12,0,0,0,160,180ZM96,76a12,12,0,0,0,12-12V40a12,12,0,0,0-24,0V64A12,12,0,0,0,96,76Z\"/></svg>Unmount shopa</button>",
-      "css": ".ds-btn { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid transparent; font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), transform 120ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-btn-action { color: var(--blue-strong, #1a5fd0); background: var(--blue-tint, #eaf2ff); } .ds-btn-action:hover { background: color-mix(in srgb, var(--blue, #3889ff) 20%, #ffffff); } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--blue, #3889ff); outline-offset: 2px; } .ds-icon-danger { color: var(--red, #c7301b); }"
+      "description": "ENS secondary pill: Blue Deep on Blue Wash. Used for Add a step and the account-switch action.",
+      "html": "<button type=\"button\" class=\"ds-btn ds-btn-action\">Add a step</button>",
+      "css": ".ds-btn { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid transparent; font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), transform 120ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-btn-action { color: var(--blue-strong, #1a5fd0); background: var(--blue-tint, #eaf2ff); } .ds-btn-action:hover { background: color-mix(in srgb, var(--blue, #3889ff) 20%, #ffffff); } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--blue, #3889ff); outline-offset: 2px; }"
     },
     {
       "name": "Neutral Button",
@@ -521,12 +594,36 @@
       "css": ".ds-btn-n { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border, #e8e8ec); background: var(--surface, #ffffff); color: var(--text, #1e1e21); font-size: 15px; font-weight: 700; cursor: pointer; transition: background-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), border-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), transform 120ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-btn-n:hover { border-color: var(--border-strong, #d6d6dd); background: var(--surface-2, #f6f6f8); } .ds-btn-n:active { transform: scale(0.97); } .ds-btn-n:focus-visible { outline: 2px solid var(--blue, #3889ff); outline-offset: 2px; }"
     },
     {
+      "name": "Wallet Pill",
+      "kind": "nav",
+      "refersTo": "wallet-pill",
+      "description": "Top bar wallet: solid Blue Deep when disconnected, white neutral pill when connected.",
+      "html": "<button type=\"button\" class=\"ds-wp\">Connect wallet</button> <button type=\"button\" class=\"ds-wp ds-wp-c\">0x3f1c…9a02</button>",
+      "css": ".ds-wp { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid transparent; background: var(--blue-strong, #1a5fd0); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-wp:hover { background: color-mix(in srgb, var(--blue-strong, #1a5fd0) 86%, #000); } .ds-wp:focus-visible { outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue, #3889ff) 30%, transparent); } .ds-wp-c { background: var(--surface, #fff); border-color: var(--border, #e8e8ec); color: var(--text, #1e1e21); } .ds-wp-c:hover { background: var(--surface, #fff); border-color: var(--border-strong, #d6d6dd); }"
+    },
+    {
       "name": "Name Search",
       "kind": "input",
       "refersTo": "search-input",
       "description": "The top bar's ENS name field: white, 10px radius, blue border and 4px halo on focus.",
       "html": "<label class=\"ds-search\"><svg class=\"ds-search-icon\" width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z\"/></svg><input type=\"text\" placeholder=\"Search a .eth name\" value=\"mia.support.shopa.eth\" /></label>",
       "css": ".ds-search { position: relative; display: flex; align-items: center; width: 420px; max-width: 100%; } .ds-search-icon { position: absolute; left: 15px; color: var(--text-3, #6e6e7a); pointer-events: none; } .ds-search input { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); width: 100%; height: 48px; padding: 0 16px 0 44px; border: 1px solid var(--border, #e8e8ec); border-radius: 10px; background: var(--surface, #ffffff); color: var(--text, #1e1e21); font-size: 17px; font-weight: 500; transition: border-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), box-shadow 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-search input:hover { border-color: var(--border-strong, #d6d6dd); } .ds-search input:focus { outline: none; border-color: var(--blue, #3889ff); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue, #3889ff) 18%, transparent); }"
+    },
+    {
+      "name": "Step Card",
+      "kind": "card",
+      "refersTo": "step-card",
+      "description": "Playbook step: 16px white card, neutral icon tile with the risk colour on the glyph, inline 40px fields; active = blue border and selection ring.",
+      "html": "<div class=\"ds-step ds-active\"><div class=\"ds-step-head\"><span class=\"ds-tile\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M195.8,60.2a28,28,0,0,0-39.51-.09L144.68,72.28a12,12,0,1,1-17.36-16.56L139,43.43l.2-.2a52,52,0,0,1,73.54,73.54l-.2.2-12.29,11.71a12,12,0,0,1-16.56-17.36l12.17-11.61A28,28,0,0,0,195.8,60.2ZM111.32,183.72,99.71,195.89a28,28,0,0,1-39.6-39.6l12.17-11.61a12,12,0,0,0-16.56-17.36L43.43,139l-.2.2a52,52,0,0,0,73.54,73.54l.2-.2,11.71-12.29a12,12,0,1,0-17.36-16.56ZM216,148H192a12,12,0,0,0,0,24h24a12,12,0,0,0,0-24ZM40,108H64a12,12,0,0,0,0-24H40a12,12,0,0,0,0,24Zm120,72a12,12,0,0,0-12,12v24a12,12,0,0,0,24,0V192A12,12,0,0,0,160,180ZM96,76a12,12,0,0,0,12-12V40a12,12,0,0,0-24,0V64A12,12,0,0,0,96,76Z\"/></svg></span><div><p class=\"ds-st\">Unmount support.shopb.eth</p><p class=\"ds-ss\">Signed by the fleet owner</p></div></div><label class=\"ds-field\"><span>Doorway</span><select><option>support.shopb.eth</option></select></label></div>",
+      "css": ".ds-step { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); max-width: 380px; padding: 14px 12px 14px 8px; background: var(--surface, #fff); border: 1px solid var(--border, #e8e8ec); border-radius: 16px; transition: border-color 160ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)), box-shadow 200ms var(--ease, cubic-bezier(0.22, 1, 0.36, 1)); } .ds-step:hover { border-color: var(--border-strong, #d6d6dd); } .ds-active { border-color: var(--blue, #3889ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue, #3889ff) 18%, transparent); } .ds-step-head { display: flex; align-items: center; gap: 12px; padding-left: 6px; } .ds-tile { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 10px; background: var(--surface-2, #f6f6f8); color: var(--red, #c7301b); } .ds-st { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.25; color: var(--text, #1e1e21); } .ds-ss { margin: 2px 0 0; font-size: 13px; font-weight: 500; color: var(--text-2, #6b6b76); } .ds-field { display: grid; gap: 4px; margin: 12px 0 0 50px; } .ds-field span { font-size: 13px; font-weight: 700; color: var(--text-2, #6b6b76); } .ds-field select { font-family: inherit; height: 40px; padding: 0 12px; border: 1px solid var(--border, #e8e8ec); border-radius: 10px; background: var(--surface, #fff); font-size: 15px; font-weight: 700; color: var(--text, #1e1e21); } .ds-field select:hover { border-color: var(--border-strong, #d6d6dd); } .ds-field select:focus { outline: none; border-color: var(--blue, #3889ff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue, #3889ff) 18%, transparent); }"
+    },
+    {
+      "name": "Popover Menu",
+      "kind": "custom",
+      "refersTo": "popover",
+      "description": "Floating menu: white, hairline, 10px radius, the one soft shadow; items carry their risk colour on the icon only.",
+      "html": "<div class=\"ds-pop\"><p class=\"ds-pop-h\">Kill switches</p><button type=\"button\" class=\"ds-mi\"><span class=\"ds-red\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M195.8,60.2a28,28,0,0,0-39.51-.09L144.68,72.28a12,12,0,1,1-17.36-16.56L139,43.43l.2-.2a52,52,0,0,1,73.54,73.54l-.2.2-12.29,11.71a12,12,0,0,1-16.56-17.36l12.17-11.61A28,28,0,0,0,195.8,60.2ZM111.32,183.72,99.71,195.89a28,28,0,0,1-39.6-39.6l12.17-11.61a12,12,0,0,0-16.56-17.36L43.43,139l-.2.2a52,52,0,0,0,73.54,73.54l.2-.2,11.71-12.29a12,12,0,1,0-17.36-16.56ZM216,148H192a12,12,0,0,0,0,24h24a12,12,0,0,0,0-24ZM40,108H64a12,12,0,0,0,0-24H40a12,12,0,0,0,0,24Zm120,72a12,12,0,0,0-12,12v24a12,12,0,0,0,24,0V192A12,12,0,0,0,160,180ZM96,76a12,12,0,0,0,12-12V40a12,12,0,0,0-24,0V64A12,12,0,0,0,96,76Z\"/></svg></span>Unmount a doorway</button><button type=\"button\" class=\"ds-mi\"><span><svg width=\"18\" height=\"18\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z\"/></svg></span>Reset the demo</button></div>",
+      "css": ".ds-pop { font-family: var(--font-sans, \"Satoshi\", ui-sans-serif, system-ui, sans-serif); width: 260px; padding: 6px; background: var(--surface, #fff); border: 1px solid var(--border, #e8e8ec); border-radius: 10px; box-shadow: 0 12px 32px -8px rgb(24 24 32 / 0.18), 0 2px 6px rgb(24 24 32 / 0.06); } .ds-pop-h { margin: 8px 10px 4px; font-size: 13px; font-weight: 700; color: var(--text-2, #6b6b76); } .ds-mi { font-family: inherit; display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px; background: none; text-align: left; font-size: 15px; font-weight: 700; color: var(--text, #1e1e21); cursor: pointer; } .ds-mi span { display: inline-flex; } .ds-mi:hover { background: var(--surface-2, #f6f6f8); } .ds-mi:focus-visible { outline: 2px solid var(--blue, #3889ff); outline-offset: -2px; } .ds-red { color: var(--red, #c7301b); }"
     },
     {
       "name": "Verdict Tag",
@@ -579,11 +676,11 @@
   ],
   "narrative": {
     "northStar": "The ENS Manager, Extended",
-    "overview": "ENF plays the category standard straight. It is meant to sit beside the ENS Manager app (app.ens.domains) on a projector and read as the same family: a flat neutral grey canvas, white rounded panels with hairline borders, one blue for everything you can press or select, and Satoshi for every word. Nothing is invented for novelty; the craft is in restraint, density that holds up from three metres, and state that is legible without reading.\n\nThe page is a product page, not a stats dashboard. The fleet map is the largest surface and everything else explains what the map just did. Colour is spent on meaning: blue marks action and selection, and the verdict colours (green, red, orange, grey) mark state. Surfaces carry no shadow; depth comes from white on grey plus a 1px border.\n\nThe system is light-first and pinned light for the projected demo. Dark tokens exist, but only as an opt-in override that nothing in the build sets.",
+    "overview": "ENF plays the category standard straight. It is meant to sit beside the ENS Manager app (app.ens.domains) on a projector and read as the same family: a flat neutral grey canvas, white rounded panels with hairline borders, one blue for everything you can press or select, and Satoshi for every word. Nothing is invented for novelty; the craft is in restraint, density that holds up from three metres, and state that is legible without reading.\n\nThe product has two surfaces in one family. The landing page (`/`) explains the mechanism with a live preview and three mechanism figures, and hands off to the editor with one solid blue button. The playbook editor (`/editor`) replaces the old single-route dashboard: a sticky playbook column on the left where kill switches are now steps you compose and run, and a workspace on the right where the fleet map is the largest surface and everything else explains what the map just did. It is a product, not a stats dashboard. Colour is spent on meaning: blue marks action and selection, and the verdict colours (green, red, orange, grey) mark state. Surfaces carry no shadow; depth comes from white on grey plus a 1px border.\n\nThe system is light-first and pinned light for the projected demo. Dark tokens exist, but only as an opt-in override that nothing in the build sets.",
     "keyCharacteristics": [
-      "Neutral grey canvas (#f6f6f6), white panels, 1px cool hairline borders, no shadows at rest.",
+      "Neutral grey canvas (#f6f6f6), white panels, 1px cool hairline borders, no shadows at rest; floating menus are the one exception.",
       "One radius scale: 16px panels, 10px controls, full pill for tags, buttons and status pills.",
-      "ENS blue is the only action and selection colour; verdict colours are for state only.",
+      "ENS blue is the only action and selection colour; one solid Blue Deep button per page, everything else is a wash or white pill. Verdict colours are for state only.",
       "Satoshi throughout, heavy weights (700 and 900) for structure, tabular numerals for block numbers and counts, mono only for addresses and hashes.",
       "Phosphor icons in two weights with fixed jobs: fill for status and verdict, bold for action and UI.",
       "Dead or removed things are drawn as dashed and grey, never faded."
@@ -591,7 +688,12 @@
     "rules": [
       {
         "name": "The One Blue Rule",
-        "body": "ENS blue is the only colour for action and selection: buttons, focus, hover, the selected cell. No verdict colour ever fills a button.",
+        "body": "ENS blue is the only colour for action and selection: buttons, focus, hover, the selected cell, the active step. No verdict colour ever fills a button.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Solid Button Rule",
+        "body": "A page has one solid blue button, its single most important action (Open editor on the landing, Run playbook in the editor), filled with Blue Deep and white text. The disconnected wallet pill shares the fill because connecting is the prerequisite for Run. Everything else is a Blue Wash secondary or a white neutral pill. Never put white text on the light ENS Blue.",
         "section": "colors"
       },
       {
@@ -600,8 +702,8 @@
         "section": "colors"
       },
       {
-        "name": "The Blue Kill Switch Rule",
-        "body": "Destructive kill switches (Unmount, Fire, Use a flagged address) are blue secondary buttons. Only the leading icon carries the risk colour: red for destructive, orange for warning. Restore and Reset are neutral white buttons.",
+        "name": "The Risk On The Icon Rule",
+        "body": "Kill switches are now playbook steps (Unmount, Fire, Use a flagged address, Counterfeit). Their risk shows only on the glyph: a red (destructive) or orange (warning) icon over a neutral Recessed Grey tile, and the same coloured bold icon in the insert menu. The tile, card and button around it stay neutral or blue. Restore and Reset steps are neutral; Check keeps a Blue Wash tile because it reads, it does not act.",
         "section": "colors"
       },
       {
@@ -620,13 +722,18 @@
         "section": "typography"
       },
       {
+        "name": "The Four Weights Rule",
+        "body": "Only 400, 500, 700 and 900 exist. A weight between them renders as its nearest shipped neighbour, so do not specify one.",
+        "section": "typography"
+      },
+      {
         "name": "The Mono Is For Hex Rule",
         "body": "Mono appears only on addresses, hashes and raw check detail. Names such as `support.shopa.eth` are set in Satoshi.",
         "section": "typography"
       },
       {
         "name": "The No-Lift Rule",
-        "body": "Nothing floats. A shadow is always a zero-offset ring that shows focus, selection or liveness.",
+        "body": "Nothing on the page floats. A shadow is a zero-offset ring that shows focus, selection or liveness. The only soft shadow belongs to popover menus, which are the one layer that truly sits above the page; cards, step cards and figures never get it.",
         "section": "elevation"
       },
       {
@@ -637,7 +744,9 @@
     ],
     "dos": [
       "**Do** set the page on the neutral canvas (#f6f6f6) with white 16px-radius cards and 1px hairlines, as the ENS Manager does.",
-      "**Do** keep ENS Blue as the only action and selection colour, and draw kill switches as blue secondary pills with a red (destructive) or orange (warning) icon.",
+      "**Do** keep ENS Blue as the only action and selection colour, with exactly one solid Blue Deep button per page for its most important action.",
+      "**Do** show a step's risk only on its icon: red (destructive) or orange (warning) over a neutral tile.",
+      "**Do** mark the step being hovered or run with a blue border and selection ring, and outline the map node it touches in 3px blue.",
       "**Do** use Phosphor fill for status and verdict glyphs and Phosphor bold for action and UI glyphs.",
       "**Do** show dead doorways and fired agents with a dashed outline, a Recessed Grey fill, the name in Slate, a grey tag and a dashed edge.",
       "**Do** pair every verdict colour with its own tint, and lead verdict tags and cells with the filled verdict icon.",
@@ -647,9 +756,12 @@
     "donts": [
       "**Don't** fill a button with green, red or orange, or use a verdict colour for decoration or section identity.",
       "**Don't** show dead or removed state by lowering opacity.",
-      "**Don't** add drop shadows or lifted cards; shadows are zero-offset state rings only.",
+      "**Don't** add drop shadows or lifted cards; outside popover menus, shadows are zero-offset state rings only.",
+      "**Don't** put white text on the light ENS Blue (about 3.4:1), or add a second solid blue button to a page.",
+      "**Don't** use a radius off the 16px / 10px / pill scale.",
       "**Don't** switch the canvas to a cool grey or add a system-preference dark mode.",
       "**Don't** use uppercase or letter-spaced labels, or small labels stacked above headings.",
+      "**Don't** specify font weight 600 or any weight Satoshi is not shipped in.",
       "**Don't** mix icon sets or add a third Phosphor weight.",
       "**Don't** set text a judge must read in Mist (`text-3`); it is below 4.5:1 on white."
     ]
