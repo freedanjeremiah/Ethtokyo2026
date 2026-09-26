@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "scripts"
+    "scripts",
+    "app"
   ],
   "devDependencies": {
     "tsx": "^4.19.2",

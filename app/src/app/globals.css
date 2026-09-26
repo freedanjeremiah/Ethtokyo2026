@@ -1,0 +1,323 @@
+:root {
+  --bg: #05060a;
+  --panel: #0e1018;
+  --panel-border: #23273a;
+  --text: #f2f3f7;
+  --muted: #9096ab;
+  --green: #1fd873;
+  --red: #ff4d5e;
+  --orange: #ffab2e;
+  --black-verdict: #8890a6;
+  --mono: "SF Mono", "Menlo", "Consolas", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 32px) clamp(16px, 4vw, 32px) 48px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2.5vw, 22px);
+}
+
+.top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.brand span {
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: normal;
+  margin-left: 10px;
+  font-size: 0.55em;
+}
+
+.ticker {
+  font-family: var(--mono);
+  color: var(--muted);
+  font-size: clamp(12px, 1.6vw, 15px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ticker .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  flex: none;
+}
+
+.ticker.down .dot {
+  background: var(--orange);
+  box-shadow: 0 0 8px var(--orange);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.name-input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: clamp(18px, 3.6vw, 30px);
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 2px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+}
+
+.name-input:focus {
+  border-color: #4a5170;
+}
+
+.input-note {
+  font-size: 13px;
+  color: var(--red);
+  min-height: 1.2em;
+}
+
+.rpc-card {
+  border-radius: 20px;
+  border: 2px solid var(--orange);
+  background: linear-gradient(180deg, rgba(255, 171, 46, 0.12), transparent);
+  padding: clamp(24px, 6vw, 56px) clamp(16px, 4vw, 32px);
+  text-align: center;
+}
+
+.rpc-card .word {
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 900;
+  color: var(--orange);
+  letter-spacing: 0.04em;
+}
+
+.rpc-card .line {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: clamp(14px, 2vw, 18px);
+}
+
+.verdict-card {
+  border-radius: 20px;
+  border: 3px solid var(--card-color, var(--panel-border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-color, transparent) 14%, var(--panel)), var(--panel));
+  padding: clamp(24px, 6vw, 56px) clamp(16px, 4vw, 32px);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.verdict-card .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: clamp(40px, 10vw, 96px);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: var(--card-color);
+  line-height: 1;
+}
+
+.verdict-card .badge .icon {
+  font-size: 0.7em;
+}
+
+.verdict-card .summary {
+  margin-top: 16px;
+  font-size: clamp(15px, 2.6vw, 22px);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.verdict-card .subname {
+  margin-top: 6px;
+  font-family: var(--mono);
+  color: var(--muted);
+  font-size: clamp(12px, 1.8vw, 16px);
+  word-break: break-all;
+}
+
+.verdict-card.loading {
+  opacity: 0.55;
+}
+
+.checks {
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  padding: 14px clamp(14px, 3vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checks h2,
+.doorways h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+.check-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.check-row:first-of-type {
+  border-top: none;
+}
+
+.check-pill {
+  flex: none;
+  width: 30px;
+  text-align: center;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.check-status {
+  flex: none;
+  width: 76px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+
+.check-status.pass {
+  color: var(--green);
+}
+
+.check-status.fail {
+  color: var(--red);
+}
+
+.check-body {
+  min-width: 0;
+}
+
+.check-title {
+  font-weight: 700;
+  font-size: clamp(13px, 1.8vw, 16px);
+}
+
+.check-detail {
+  color: var(--muted);
+  font-size: clamp(11px, 1.5vw, 13px);
+  word-break: break-word;
+}
+
+.doorways {
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  padding: 14px clamp(14px, 3vw, 22px);
+}
+
+.doorway-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.doorway-chip {
+  flex: 1 1 220px;
+  min-width: 200px;
+  border-radius: 12px;
+  border: 2px solid var(--chip-color, var(--panel-border));
+  background: color-mix(in srgb, var(--chip-color, transparent) 10%, #12141f);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doorway-chip.is-input {
+  outline: 2px dashed rgba(255, 255, 255, 0.4);
+  outline-offset: 3px;
+}
+
+.doorway-chip .name {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(12px, 1.8vw, 15px);
+  word-break: break-all;
+  color: var(--text);
+}
+
+.doorway-chip .status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: clamp(12px, 1.8vw, 14px);
+  color: var(--chip-color);
+}
+
+.doorway-chip .status .icon {
+  font-size: 1.1em;
+}
+
+.doorway-chip .detail {
+  color: var(--muted);
+  font-size: clamp(10px, 1.5vw, 12px);
+}
+
+.skipped {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+  .doorway-chip {
+    flex: 1 1 100%;
+  }
+}

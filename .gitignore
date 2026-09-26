@@ -12,4 +12,10 @@ contracts/broadcast/
 # Next.js
 app/.next/
 .next/
+app/next-env.d.ts
+app/AGENTS.md
+app/CLAUDE.md
 deployments/fleet.anvil.json
+
+# Playwright MCP verification screenshots (repo-root output dir)
+.playwright-mcp/
