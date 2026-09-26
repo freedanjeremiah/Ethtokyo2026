@@ -1,0 +1,18 @@
+{
+  "name": "@mount/verifier",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "MOUNT verifier: green/red/orange/black verdict for <label>.support.<parent> names on ENSv2",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "peerDependencies": {
+    "viem": "^2.35.0"
+  }
+}
