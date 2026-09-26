@@ -1,0 +1,78 @@
+{
+  "chainId": 11155111,
+  "source": {
+    "repo": "https://github.com/ensdomains/contracts-v2",
+    "tag": "sepolia-deployment-2026-09-15",
+    "commit": "f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab",
+    "deploymentCommit": "71a3b7339dbc55ab47667abdfe8303bac4f4c24e",
+    "deployedAt": "2026-09-15T09:46:38.513Z",
+    "artifactsPath": "contracts/deployments/sepolia/"
+  },
+  "contracts": {
+    "RootRegistry": {
+      "address": "0x9703DBD26dAB89504490994138cF2c575251a9cE",
+      "abi": "abis/RootRegistry.json",
+      "codeHash": "0x5a6d133f74a90f6f3e78309679321d531dd01edc914526904275bc024530fa85"
+    },
+    "ETHRegistry": {
+      "address": "0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E",
+      "abi": "abis/ETHRegistry.json",
+      "codeHash": "0x5a6d133f74a90f6f3e78309679321d531dd01edc914526904275bc024530fa85"
+    },
+    "ETHRegistrar": {
+      "address": "0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca",
+      "abi": "abis/ETHRegistrar.json",
+      "codeHash": "0xe1911f6aae8f9ff9cfa8b1fde67fb5ae1256290168a45ebb8b066af19be87b04"
+    },
+    "UserRegistryImpl": {
+      "address": "0xA80338aAA8D23831cEa25E858D1774534aBb0263",
+      "abi": "abis/UserRegistryImpl.json",
+      "codeHash": "0xf8436ec1a5ce6a92b5bf616a7d768f611f3670d6ebe6e797470688848a45bb8c"
+    },
+    "PermissionedResolverImpl": {
+      "address": "0x14F09Fd05d4585759e54844DC9B00147131Cf243",
+      "abi": "abis/PermissionedResolverImpl.json",
+      "codeHash": "0x00de223fd76d537e07b24abe5537e3c852e934dbe4db22c02f94a143e4ceeea3"
+    },
+    "VerifiableFactory": {
+      "address": "0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C",
+      "abi": "abis/VerifiableFactory.json",
+      "codeHash": "0x7ccfd46da461cb7145497a383f2a6e6582be057b8bef3de694530b699632ecda"
+    },
+    "UniversalResolverV2": {
+      "address": "0x5d25C1D6aCBb71B7a28AA7899618a3412a8303e3",
+      "abi": "abis/UniversalResolverV2.json",
+      "codeHash": "0x77851ce255e0932b1b6f8f88395db21f2e443cbd14c75c3ca4387ab3ce46a9c5"
+    },
+    "ManagedUniversalResolverProxy": {
+      "address": "0x6d80F2172CFdEc5730fE683860C33d26fC42e6F1",
+      "abi": "abis/ManagedUniversalResolverProxy.json",
+      "codeHash": "0xba6ae56546e53515a294152a398155a1094ef337abdb76bc541f2d78744b4b12"
+    },
+    "UpgradableUniversalResolverProxy": {
+      "address": "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe",
+      "abi": "abis/UpgradableUniversalResolverProxy.json",
+      "codeHash": "0xf7ead24f8e5e731683ed38f7cd5052db9e3e8150fb2b5bc76c1a1bb450af74c5"
+    },
+    "UniversalHelper": {
+      "address": "0x33f571aa8A160a21b877cF6E0Fb8806692b97DF5",
+      "abi": "abis/UniversalHelper.json",
+      "codeHash": "0xfbcd0a38a6ba401a667ff29fe759eb3b53bcb7d43a9f0e343a4549a0c45b65a9"
+    },
+    "LabelStore": {
+      "address": "0x375C082021E677a40eA2AE094D050602dba90992",
+      "abi": "abis/LabelStore.json",
+      "codeHash": "0x0f86fa4447f6fe52b5ab45ef738b227a55ef44128ccfd209b0749e21e1eaf3a0"
+    },
+    "StandardRentPriceOracle": {
+      "address": "0x9B0b9C65BDAf9794Ff7697E4dCFb1f50581072BB",
+      "abi": "abis/StandardRentPriceOracle.json",
+      "codeHash": "0xa7ae033e8a107d18ded4595b1e8fe1e7ad92b1c28c068aa54eed738317da9677"
+    },
+    "MockUSDC": {
+      "address": "0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e",
+      "abi": "abis/MockUSDC.json",
+      "codeHash": "0xa430e5a1e733deef5671e696d68dcf0ea62b125330bc52d8846dd3d57c4602e0"
+    }
+  }
+}
