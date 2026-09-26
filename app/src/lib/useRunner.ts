@@ -115,11 +115,15 @@ export function useRunner({ onChainChange, onChecked }: { onChainChange: () => v
     if (!name) throw new Error("Type a name to check.");
     // Read at a block that includes this run's transactions; the read RPC can trail the wallet's by a block.
     let block: bigint | null = null;
+    let caughtUp = false;
     for (let i = 0; i < 20; i++) {
       block = await wait("Waiting for the chain to catch up.", currentBlock());
-      if (minBlock.current === null || (block !== null && block >= minBlock.current)) break;
+      caughtUp = minBlock.current === null || (block !== null && block >= minBlock.current);
+      if (caughtUp) break;
       await wait("Waiting for the chain to catch up.", new Promise((r) => setTimeout(r, 1500)));
     }
+    // A verdict from before this run's transactions would be a false result, pass or fail.
+    if (!caughtUp) throw new Error(`The chain has not reached block ${minBlock.current} after 30s, so ${name} can't be checked yet. Run the check again.`);
     const qs = new URLSearchParams({ name });
     if (block !== null) qs.set("block", block.toString());
     const res = await wait(`Checking ${name}.`, fetch(`/api/verify?${qs}`, { cache: "no-store" }));
