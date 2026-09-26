@@ -1,4 +1,5 @@
-// GET /api/verify?name=<ens name>[&block=<n>] -> VerifyResult JSON.
+// GET /api/verify?name=<ens name>[&block=<n>][&fleet=<name>] -> VerifyResult JSON. ?fleet= picks the fleet whose
+// canonical doorway is the fallback below (default: the demo fleet, support.vendor.eth).
 //
 // 400 for a missing/blank ?name= or a non-decimal ?block=. 502 when the RPC transport itself
 // fails (verify() rejects on transport errors per packages/verifier — those never become a
@@ -15,7 +16,8 @@
 
 import { NextResponse } from "next/server";
 import { verify, type VerifyResult } from "@fns/verifier";
-import { FleetFileMissingError, type FleetFile, getDeployment, getScreening, readFleetFile } from "@/lib/deployment.server";
+import { getDeployment, getScreening } from "@/lib/deployment.server";
+import { resolveFleet } from "@/lib/fleet-resolve.server";
 import { rpcClient, rpcErrorMessage } from "@/lib/rpc.server";
 import type { VerifyApiResponse } from "@/lib/api-types";
 
@@ -45,17 +47,10 @@ export async function GET(request: Request) {
   const blockParam = url.searchParams.get("block");
   if (blockParam !== null && !/^\d+$/.test(blockParam)) return NextResponse.json({ error: "block must be a decimal number" }, { status: 400 });
 
-  // The fleet file is optional: the verifier itself never needs it (it walks the real ENSv2
-  // registries), only the best-effort canonical-doorway fallback below does. Without it — e.g. a
-  // fresh checkout that hasn't run scripts/setup-all.ts yet — /api/verify still returns a real
-  // verdict; it just can't add the extra canonical-doorway pill.
-  let fleet: FleetFile | null;
-  try {
-    fleet = readFleetFile();
-  } catch (err) {
-    if (err instanceof FleetFileMissingError) fleet = null;
-    else throw err;
-  }
+  // The fleet is optional: the verifier itself never needs it (it walks the real ENSv2 registries), only the
+  // best-effort canonical-doorway fallback below does. When the fleet cannot be read (no fleet file yet, unknown
+  // name, RPC hiccup) /api/verify still returns a real verdict; it just can't add the extra canonical-doorway pill.
+  const fleet = await resolveFleet(url.searchParams.get("fleet")).catch(() => null);
 
   const deployment = getDeployment();
   let screening;
@@ -81,8 +76,8 @@ export async function GET(request: Request) {
   // couldn't be read at all (e.g. the typed name is fully unregistered), fall back to
   // also showing the fleet's known canonical doorway so the strip isn't just the typed
   // name alone (packages/verifier task-6-report, Concern #2).
-  if (result.label && result.resolved.parents === undefined && fleet?.canonicalName) {
-    const canonicalDoorway = `${result.label}.${fleet.canonicalName}`;
+  if (result.label && result.resolved.parents === undefined && fleet?.canonical) {
+    const canonicalDoorway = `${result.label}.${fleet.canonical}`;
     if (canonicalDoorway !== result.normalized && !result.doorways.some((d) => d.normalized === canonicalDoorway)) {
       try {
         const extra = await verify(client, canonicalDoorway, { deployment, screen, doorways: false, blockNumber });

@@ -71,23 +71,36 @@ export type FleetScan = {
   };
   /** Lowest block the log scan covered. */
   scannedFrom: string;
+  /** The wallet that owns the fleet (signs vendor steps); set by /api/fleet, null from the scan itself. */
+  vendor: string | null;
+  /** True for the demo fleet, support.vendor.eth. */
+  demo: boolean;
+  /** The fleet name the request resolved to (support.<vendor>.eth); set by /api/fleet. */
+  canonicalRequested: string;
 };
 
-export type ActionName = "unmount" | "fire" | "dirty" | "clean" | "reset" | "counterfeit";
+export type ActionName = "unmount" | "fire" | "dirty" | "clean" | "reset" | "counterfeit" | "hire" | "add-doorway";
+
+export type ActionRequest = { fleet?: string; action: ActionName; target?: string; address?: string };
 
 export type ActionsInfo = {
   enabled: boolean;
   /** Why the kill switches are disabled (live chain, production build, ...). */
   reason?: string;
-  /** Allowed targets, from the fleet file (never free text). */
+  /** Endorsed doorway labels and agent labels, from chain (the demo fleet: its fleet file). */
   parents: string[];
   agents: string[];
   /** Which chain the buttons act on; null when disabled. */
   chain: "anvil" | "live" | null;
+  canonical: string;
+  /** The wallet that signs vendor steps; null when the fleet could not be read. */
+  vendor: string | null;
+  demo: boolean;
 };
 
-/** One unsigned transaction the browser wallet sends. `from` is the only address allowed to sign it. */
-export type TxStep = { what: string; signer: string; from: `0x${string}`; to: `0x${string}`; data: `0x${string}` };
+/** One unsigned transaction the browser wallet sends. `from` is the only address allowed to sign it.
+ * `simulate: false` marks a step that depends on an earlier step of the same plan, so it is not pre-flighted. */
+export type TxStep = { what: string; signer: string; from: `0x${string}`; to: `0x${string}`; data: `0x${string}`; simulate?: false };
 
 /** The transactions an action still needs (empty when there is nothing to do), or why it cannot run. */
 export type ActionPlan = { ok: true; steps: TxStep[] } | { ok: false; error: string };

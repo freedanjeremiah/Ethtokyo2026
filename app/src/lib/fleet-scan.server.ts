@@ -335,6 +335,10 @@ async function scan(input: ScanInput, epoch: Epoch, block: bigint): Promise<Flee
       cellsTotal: cells.length,
     },
     scannedFrom: fromBlock.toString(),
+    // Fleet identity is the route's business (lib/fleet-resolve.server.ts); /api/fleet fills these in.
+    vendor: null,
+    demo: false,
+    canonicalRequested: "",
   };
 }
 
