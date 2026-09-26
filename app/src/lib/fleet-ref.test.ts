@@ -21,6 +21,9 @@ describe("labels and doorways", () => {
     expect(normLabel("Alice-Shop")).toBe("alice-shop");
     expect(normLabel("a.b")).toBeNull();
     expect(normLabel("")).toBeNull();
+    expect(normLabel("alice-")).toBe("alice-");
+    expect(normLabel("-shop")).toBe("-shop");
+    expect(normLabel("---")).toBeNull();
   });
   it("maps doorway names both ways", () => {
     expect(doorwayName("shopa")).toBe("support.shopa.eth");

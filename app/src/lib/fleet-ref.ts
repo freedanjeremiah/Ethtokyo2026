@@ -17,7 +17,8 @@ export function normLabel(raw: string): string | null {
   if (!t || t.includes(".")) return null;
   try {
     const n = normalize(t);
-    return LABEL_RE.test(n) && !n.startsWith("-") && !n.endsWith("-") ? n : null;
+    // Reject labels made entirely of hyphens (e.g., "-", "--", "---"), but allow leading/trailing hyphens
+    return LABEL_RE.test(n) && !/^-+$/.test(n) ? n : null;
   } catch {
     return null;
   }
