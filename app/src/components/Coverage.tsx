@@ -73,6 +73,8 @@ export function Coverage({
                         onClick={() => onSelect(c.name)}
                         onMouseEnter={() => onFocus({ doorway: d.name, agent: a.label })}
                         onMouseLeave={() => onFocus({ doorway: null, agent: null })}
+                        onFocus={() => onFocus({ doorway: d.name, agent: a.label })}
+                        onBlur={() => onFocus({ doorway: null, agent: null })}
                         aria-label={`${c.name}: ${v.label}`}
                         title={c.name}
                       >

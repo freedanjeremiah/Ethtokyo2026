@@ -73,11 +73,14 @@ function Screening({ r }: { r: VerifyApiResponse }) {
 export function Inspector({
   result,
   loading,
+  verifyingName,
   scanBlock,
   onSelect,
 }: {
   result: VerifyApiResponse | null;
   loading: boolean;
+  /** The name currently committed (i.e. being verified, or about to be once loading starts). */
+  verifyingName: string;
   /** The fleet scan's current block; a result pinned to any other block is stale (Task 1.4). */
   scanBlock: string | null;
   onSelect: (name: string) => void;
@@ -86,6 +89,9 @@ export function Inspector({
   // same as still-loading so the Inspector never shows a verdict for a block the rest of the
   // dashboard has moved past.
   const stale = !!(result?.blockNumber && scanBlock && result.blockNumber !== scanBlock);
+  // A same-name background re-verify (new block, same name) must not dim the card — only dim
+  // when the pending verify is for a different name than the one currently shown.
+  const otherName = !!(result && loading && verifyingName !== (result.normalized ?? result.input));
 
   if (!result)
     return (
@@ -104,7 +110,7 @@ export function Inspector({
 
   const others = result.doorways.filter((d) => !d.isInput);
   return (
-    <Card id="inspector-h" className={`inspector${loading || stale ? " is-loading" : ""}`}>
+    <Card id="inspector-h" className={`inspector${otherName || stale ? " is-loading" : ""}`}>
       <div className="insp-head">
         <h2 id="inspector-h" className="insp-name">
           {result.normalized ?? result.input}

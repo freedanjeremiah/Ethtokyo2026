@@ -326,18 +326,37 @@ input {
   color: var(--red);
 }
 
+/* Grid items are flat (Inspector, .col-main, Controls) so mobile DOM order can equal visual
+   order (see the 820px block below); desktop/tablet place them back into two columns with
+   explicit grid-row/column so .col-main's height never gets tied to Controls/Inspector's. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-rows: auto auto;
   gap: 20px;
   align-items: start;
 }
 
-.col-main,
-.col-side {
+.col-main {
   display: grid;
   gap: 20px;
   min-width: 0;
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+.controls,
+.inspector {
+  min-width: 0;
+  grid-column: 2;
+}
+
+.controls {
+  grid-row: 1;
+}
+
+.inspector {
+  grid-row: 2;
 }
 
 .duo {
@@ -1182,11 +1201,19 @@ input {
 
 @media (max-width: 1180px) {
   .layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .col-side {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
+  }
+  .col-main {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .controls {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .inspector {
+    grid-column: 2;
+    grid-row: 2;
   }
 }
 
@@ -1218,9 +1245,20 @@ input {
   .lede {
     font-size: 17px;
   }
-  .duo,
-  .col-side {
+  .duo {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* Mobile order must equal DOM/tab order (Inspector, then map/coverage/activity, then kill
+     switches), so drop the explicit desktop placement and let source order stack them. */
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .col-main,
+  .controls,
+  .inspector {
+    grid-column: 1;
+    grid-row: auto;
   }
   .card {
     padding: 18px 16px 20px;

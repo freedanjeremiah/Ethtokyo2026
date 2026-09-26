@@ -44,7 +44,12 @@ export default function Page() {
   const [result, setResult] = useState<VerifyApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [inputError, setInputError] = useState<string | null>(null);
+  // A debounced (typing) commit computes inputError but must not surface it until an explicit
+  // submit, blur, or select() — otherwise it fires mid-keystroke. Editing hides it again.
+  const [errorVisible, setErrorVisible] = useState(false);
   const [rpcDown, setRpcDown] = useState(false);
+  const [connMsg, setConnMsg] = useState("");
+  const prevRpcDown = useRef(false);
   const [blockNumber, setBlockNumber] = useState<string | null>(null);
   const [scan, setScan] = useState<FleetScan | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -166,7 +171,16 @@ export default function Page() {
   const select = useCallback((name: string) => {
     setInput(name);
     setCommitted(name);
+    setErrorVisible(true); // an explicit selection (cell/chip/node/URL), same as submit/blur
   }, []);
+
+  // Announce connection transitions only — not the steady "up" state, and never on first connect.
+  useEffect(() => {
+    if (rpcDown === prevRpcDown.current) return;
+    if (rpcDown) setConnMsg("Chain connection lost. Retrying.");
+    else if (prevRpcDown.current) setConnMsg("Chain connection restored.");
+    prevRpcDown.current = rpcDown;
+  }, [rpcDown]);
 
   // A shareable `?name=` on first load counts as an explicit selection, same as clicking a cell.
   // Holds the name until `committed` actually reflects it, so the verify/sync effect below can
@@ -197,6 +211,7 @@ export default function Page() {
     if (!committed) {
       setResult(null);
       setInputError(null);
+      setErrorVisible(false);
       return;
     }
     void runVerify(committed, scanRef.current?.blockNumber);
@@ -216,6 +231,7 @@ export default function Page() {
             onSubmit={(e) => {
               e.preventDefault();
               setCommitted(input.trim());
+              setErrorVisible(true);
             }}
           >
             <label htmlFor="name-search" className="sr-only">
@@ -225,21 +241,26 @@ export default function Page() {
             <input
               id="name-search"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setErrorVisible(false); // hide a shown error again until the next submit/blur
+              }}
+              onBlur={() => setErrorVisible(true)}
               spellCheck={false}
               autoCapitalize="none"
               autoCorrect="off"
               autoComplete="off"
               placeholder="Verify a name, e.g. kai.support.scam.eth"
-              aria-describedby={inputError ? "search-error" : undefined}
+              aria-invalid={errorVisible && !!inputError}
+              aria-describedby={errorVisible && inputError ? "search-error" : undefined}
             />
-            {inputError && (
+            {errorVisible && inputError && (
               <span id="search-error" className="search-error" role="alert">
                 {inputError}
               </span>
             )}
           </form>
-          <div className={`block-pill${rpcDown ? " down" : ""}`} aria-live="polite">
+          <div className={`block-pill${rpcDown ? " down" : ""}`}>
             {rpcDown ? (
               <>
                 <WarningCircle size={16} weight="bold" aria-hidden /> RPC unreachable
@@ -254,6 +275,9 @@ export default function Page() {
           </div>
         </div>
       </header>
+      <span className="sr-only" role="status">
+        {connMsg}
+      </span>
 
       <main className="page">
         {rpcDown && (
@@ -287,7 +311,10 @@ export default function Page() {
           )}
         </div>
 
+        {/* Flat children (Inspector, .col-main, Controls), in the order mobile wants them shown:
+            desktop/tablet places them back into two columns via CSS (see globals.css `.layout`). */}
         <div className="layout">
+          <Inspector result={result} loading={loading} verifyingName={committed} scanBlock={scan?.blockNumber ?? null} onSelect={select} />
           <div className="col-main">
             <Card
               id="map-h"
@@ -321,10 +348,7 @@ export default function Page() {
               )}
             </div>
           </div>
-          <div className="col-side">
-            <Controls scan={scan} onDone={refreshAll} />
-            <Inspector result={result} loading={loading} scanBlock={scan?.blockNumber ?? null} onSelect={select} />
-          </div>
+          <Controls scan={scan} onDone={refreshAll} />
         </div>
       </main>
     </>
