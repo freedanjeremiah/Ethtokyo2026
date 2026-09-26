@@ -178,6 +178,20 @@ export default function Page() {
     setCommitted(name);
   }, []);
 
+  // Shareable URL: a `?name=` on first load counts as an explicit selection, same as clicking a cell.
+  useEffect(() => {
+    const name = new URLSearchParams(window.location.search).get("name");
+    if (name) select(name);
+  }, [select]);
+
+  // Keep the address bar in sync with the committed name so the URL can be shared.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (committed) url.searchParams.set("name", committed);
+    else url.searchParams.delete("name");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [committed]);
+
   return (
     <>
       <header className="topbar">
