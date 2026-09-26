@@ -134,16 +134,6 @@ export default function Page() {
     return () => clearTimeout(t);
   }, [input]);
 
-  // Verify whenever the committed name changes.
-  useEffect(() => {
-    if (!committed) {
-      setResult(null);
-      setInputError(null);
-      return;
-    }
-    void runVerify(committed, scanRef.current?.blockNumber);
-  }, [committed, runVerify]);
-
   // Poll the block number every ~1s; re-scan and re-verify whenever it changes.
   useEffect(() => {
     let cancelled = false;
@@ -178,19 +168,39 @@ export default function Page() {
     setCommitted(name);
   }, []);
 
-  // Shareable URL: a `?name=` on first load counts as an explicit selection, same as clicking a cell.
+  // A shareable `?name=` on first load counts as an explicit selection, same as clicking a cell.
+  // Holds the name until `committed` actually reflects it, so the verify/sync effect below can
+  // tell "still waiting for the URL name to land" from "nothing pending" without a boolean flag
+  // that a Strict Mode double-invoke (same render, same stale `committed` closure) would trip.
+  const pendingUrlName = useRef<string | null>(null);
+
   useEffect(() => {
-    const name = new URLSearchParams(window.location.search).get("name");
-    if (name) select(name);
+    const urlName = new URLSearchParams(window.location.search).get("name");
+    if (urlName) {
+      pendingUrlName.current = urlName;
+      select(urlName);
+    }
   }, [select]);
 
-  // Keep the address bar in sync with the committed name so the URL can be shared.
+  // Verify whenever the committed name changes, and keep the address bar in sync so the URL
+  // stays shareable. Skips its body while a `?name=` adoption above is still in flight, so a cold
+  // load with `?name=` never wastes a lookup (or overwrites the URL) with DEFAULT_NAME.
   useEffect(() => {
+    if (pendingUrlName.current && pendingUrlName.current !== committed) return;
+    pendingUrlName.current = null;
+
     const url = new URL(window.location.href);
     if (committed) url.searchParams.set("name", committed);
     else url.searchParams.delete("name");
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [committed]);
+
+    if (!committed) {
+      setResult(null);
+      setInputError(null);
+      return;
+    }
+    void runVerify(committed, scanRef.current?.blockNumber);
+  }, [committed, runVerify]);
 
   return (
     <>

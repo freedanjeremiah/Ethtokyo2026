@@ -5,7 +5,6 @@ import type { ActionName, ActionResult, ActionsInfo, FleetScan } from "@/lib/fle
 import { Card, CopyChip, Skeleton, Tag, doorwayShort, shortAddr } from "./ui";
 
 type Pending = { action: ActionName; target?: string } | null;
-type Armed = { action: ActionName; target?: string } | null;
 type Outcome = { ok: boolean; summary: string; txs: { what: string; hash: string }[] };
 
 const armedKey = (a: ActionName, t?: string) => `${a}:${t ?? ""}`;
@@ -67,7 +66,7 @@ export function Controls({ scan, onDone }: { scan: FleetScan | null; onDone: () 
   const [info, setInfo] = useState<ActionsInfo | null>(null);
   const [pending, setPending] = useState<Pending>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [armed, setArmed] = useState<Armed>(null);
+  const [armed, setArmed] = useState<Pending>(null);
 
   const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const lastArmedKey = useRef<string | null>(null);
