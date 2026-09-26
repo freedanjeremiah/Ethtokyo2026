@@ -6,15 +6,16 @@
 //   npx tsx scripts/verify.ts mia.support.shopa.eth
 //   npx tsx scripts/verify.ts mia.support.scam.eth --json
 //
-// C5 screening comes from screenFromEnv (INTERCEPTA_API_KEY and/or SCREEN_FLAGGED in env / .env.local);
+// C5 screening comes from screenFromEnvFile (@mount/verifier/screen/node — the same resolver the
+// app's /api/verify uses), reading INTERCEPTA_API_KEY and/or SCREEN_FLAGGED from env / .env.local;
 // with neither set, C5 is omitted.
 
 import { resolve } from "node:path";
 import { createPublicClient, http } from "viem";
 import { type VerifyCore, verify } from "@mount/verifier";
 import { loadDeployment } from "@mount/verifier/node";
-import { screenFromEnv } from "@mount/verifier/screen";
-import { REPO_ROOT, RPC_URL } from "./lib/env.js";
+import { screenFromEnvFile } from "@mount/verifier/screen/node";
+import { ENV_LOCAL_PATH, REPO_ROOT, RPC_URL } from "./lib/env.js";
 
 const ICON: Record<string, string> = { green: "GREEN ", red: "RED   ", orange: "ORANGE", black: "BLACK " };
 
@@ -29,7 +30,9 @@ async function main() {
   const deployment = loadDeployment(resolve(REPO_ROOT, "deployments", "sepolia.json"));
   const client = createPublicClient({ transport: http(RPC_URL) });
   const t0 = performance.now();
-  const screening = screenFromEnv(process.env);
+  // Shared with the app's /api/verify (@mount/verifier/screen/node) so the CLI and the app
+  // always agree: process.env wins for scalar keys, SCREEN_FLAGGED is the union of both.
+  const screening = screenFromEnvFile(process.env, ENV_LOCAL_PATH);
   const r = await verify(client, name, { deployment, screen: screening.screen });
   const ms = Math.round(performance.now() - t0);
 

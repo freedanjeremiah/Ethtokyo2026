@@ -9,7 +9,12 @@ TypeScript verifier (`../packages/verifier/`).
 ## Test
 
 ```shell
-SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com forge test --fork-url "$SEPOLIA_RPC_URL" -vv
+SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com forge test -vv
 ```
+
+The tests select their own fork with `vm.createSelectFork("sepolia", FORK_BLOCK)`, which reads the
+`sepolia` RPC endpoint from `foundry.toml` (`${SEPOLIA_RPC_URL}`) — don't also pass `--fork-url
+"$SEPOLIA_RPC_URL"` on this line: in a fresh shell that hasn't exported the var, it expands to
+`--fork-url ""`, which forge rejects.
 
 See `../README.md` for the full runbook (fork setup, demo scripts, verifier CLI, app).

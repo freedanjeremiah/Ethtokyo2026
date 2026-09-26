@@ -174,7 +174,10 @@ Sepolia; produced only after a live run — not yet performed, see §7).
 - Namespace aliasing (one registry mounted at multiple `setSubregistry` points) is documented by
   ENS and, as far as this project found, built by nobody: of ~25 non-ENS repos calling
   `setSubregistry`, every one was single-mount.
-- `linkToNode` / `linkToRecord` usage outside `ensjs` itself: zero hits found.
+- `linkToNode` / `linkToRecord`: verified available/present in `ensjs`'s own source during
+  research for this project — MOUNT does not call either (the shared resolver's default (`0x00`)
+  record does the aliasing work MOUNT needs); listed here only because they were part of the
+  registry-linking primitives investigated, not because MOUNT uses them.
 - Default-record (`0x00`) usage outside the ENS contracts themselves: zero hits found.
 - ENSv1 cannot express any of this — one node has exactly one owner and one resolver, so there is
   no way to alias one identity into three names without three separate registrations to keep in
@@ -202,16 +205,27 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   necessarily "clean."
 - **`agent-context` / `agent-endpoint[web]` are placeholder URLs** (`https://mount.example/...`) —
   no real agent-serving endpoint exists behind them.
+- **`ensureParentRegistry` sets the merchant's own `<parent>.eth` resolver to `0x0`.** Per the
+  topology in §1, this is deliberate — an inherited wildcard resolver on `<parent>.eth` is exactly
+  what would let a non-member (`bob.support.shopa.eth`) or the bare `support.shopa.eth` node
+  resolve, defeating the black/non-member verdict. The tradeoff: the merchant's own `<parent>.eth`
+  (e.g. `shopa.eth` itself, not `support.shopa.eth`) loses whatever site/address resolution it had
+  before adopting MOUNT, unless the merchant sets its own resolver back on that name separately. A
+  wildcard resolver on `<parent>.eth` would fix that, but would also make arbitrary non-members
+  resolve in stock ENS clients — MOUNT's verifier still returns black for them (it checks the
+  resolver at the leaf, not inherited), but any client that only checks "does this resolve" would
+  be fooled, same failure mode as the counterfeit-mount case above.
 - **Live Sepolia has not been exercised** — see §7. Everything above was run and verified on an
-  anvil fork of Sepolia against the real, deployed contract bytecode.
+  anvil fork of Sepolia against the real, deployed contract bytecode. Registering
+  `vendor`/`shopa`/`shopb`/`scam.eth` on live Sepolia is first-come, first-served like any `.eth`
+  name — see §7.6 for what happens if one is already taken.
 
 ---
 
 ## 7. Runbook
 
 All commands below were executed, in order, from a clean fork state, during this task. Full
-command-by-command output is in
-[`.superpowers/sdd/IMPLEMENTATION_PLAN/task-9-report.md`](.superpowers/sdd/IMPLEMENTATION_PLAN/task-9-report.md).
+command-by-command output is in [`docs/runbook-evidence.md`](docs/runbook-evidence.md).
 
 ### 7.1 Setup
 
@@ -238,9 +252,11 @@ npx tsx scripts/setup-all.ts
 # under every mount to the settlement address; non-members and parent nodes are null.
 npx tsx scripts/check-resolution.ts
 
-# Foundry fork tests against the real deployed contracts (10 tests).
-cd contracts && SEPOLIA_RPC_URL=https://sepolia.gateway.tenderly.co \
-  forge test --fork-url "$SEPOLIA_RPC_URL" -vv && cd ..
+# Foundry fork tests against the real deployed contracts (10 tests). The tests already pin the
+# fork with vm.createSelectFork("sepolia", FORK_BLOCK) (foundry.toml's [rpc_endpoints] "sepolia"
+# reads SEPOLIA_RPC_URL) — don't also pass --fork-url, or a fresh shell with SEPOLIA_RPC_URL set
+# only on this line expands it to `--fork-url ""` (export first if you want to pass --fork-url).
+cd contracts && SEPOLIA_RPC_URL=https://sepolia.gateway.tenderly.co forge test -vv && cd ..
 
 # Verifier unit + fork tests (80 tests: pure, errors, screen, and live-fork tests
 # that exercise the demo scripts themselves).
@@ -283,20 +299,46 @@ All five beats above were executed against the live fork during this task, via
 `curl /api/verify` with the dev server running; verdicts matched exactly what is written above.
 The fork and dev server were stopped afterward.
 
+**Before presenting:** use a paid/fast fork RPC (a free public RPC like publicnode rate-limits
+under load — see §9) and pre-warm it by running `npx tsx scripts/verify.ts mia.support.shopa.eth`
+once before the demo starts. viem maps some upstream RPC errors under rate-limiting (including
+`-32603`) to the same shape as an on-chain revert, which the verifier's membership-read path can
+read as "no resolver" — i.e. a **possible false BLACK verdict** live on stage, not just a clean
+502. Warming the RPC up first (and having a fast, non-rate-limited endpoint under load) avoids
+finding this out mid-demo.
+
 ### 7.6 Live Sepolia — documented, **not yet executed**
 
 The steps below are the same scripts pointed at live Sepolia instead of the fork. They require
 funded keys and have **not been run** (global constraint: funding and live registration are a
-human step, out of scope for autonomous execution).
+human step, out of scope for autonomous execution). Run them in this order — funding has to come
+*after* `00-keys.ts` generates the addresses to fund, not before:
 
 ```bash
-# .env.local: RPC_URL=https://ethereum-sepolia-rpc.publicnode.com (or your own key)
-#             fund VENDOR_PK/OPERATOR_PK/SHOPA_PK/SHOPB_PK/SCAM_PK/MIA_PK/KAI_PK/RIN_PK with Sepolia ETH
-npx tsx scripts/00-keys.ts              # generates keys only; no auto-funding off a fork
+# 1. Generate fresh actor keys into .env.local (no auto-funding off a fork this time).
+npx tsx scripts/00-keys.ts
+
+# 2. .env.local: set RPC_URL=https://ethereum-sepolia-rpc.publicnode.com (or your own key), then
+#    fund VENDOR_PK/OPERATOR_PK/SHOPA_PK/SHOPB_PK/SCAM_PK/MIA_PK/KAI_PK/RIN_PK with Sepolia ETH —
+#    the addresses 00-keys.ts just printed. The app reads RPC_URL from this same root .env.local
+#    (process.env still wins if you export it) — see "App RPC configuration" below.
+
+# 3. Register vendor.eth/shopa.eth/shopb.eth/scam.eth EARLY: these are real, permissionless labels
+#    on live Sepolia and any of them may already be taken by someone else, unlike on a fresh fork.
+#    setup-names.ts (called by setup-all.ts) fails loudly with "already owned by <address>, not
+#    us" if a label is squatted — there is no scripted fallback, you'd need to pick different
+#    parent names (and update ACTOR_LABELS / the vendor/shopa/shopb/scam constants) and re-run.
 npx tsx scripts/setup-all.ts            # same steps as §7.1, writes deployments/fleet.11155111.json
 npx tsx scripts/check-resolution.ts
 npx tsx scripts/verify.ts mia.support.shopa.eth
 ```
+
+**App RPC configuration.** `npm run dev -w app` / `next start` run with Next's own cwd as `app/`,
+so Next's automatic `.env*` loading never sees the repo-root `.env.local` that `00-keys.ts` and
+the scripts above write to. The app's server code (`app/src/lib/deployment.server.ts`) reads
+`RPC_URL` explicitly from that root `.env.local` (process.env still wins if you export `RPC_URL`
+yourself), the same way it already does for the C5 screening keys — so pointing the root
+`.env.local`'s `RPC_URL` at live Sepolia is enough; no shell export or `app/.env.local` needed.
 
 ---
 

@@ -11,12 +11,32 @@ import { fileURLToPath } from "node:url";
 import type { Abi } from "viem";
 import { REQUIRED_ABIS, type RequiredAbiName, type SepoliaJson, deploymentFromJson } from "@mount/verifier";
 import type { VerifierDeployment } from "@mount/verifier";
-import { type ScreenSelection, screenFromEnv } from "@mount/verifier/screen";
+import type { ScreenSelection } from "@mount/verifier/screen";
+import { SCREEN_ENV_KEYS, screenFromEnvFile } from "@mount/verifier/screen/node";
 
 // app/src/lib -> app/src -> app -> repo root
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-export const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
+/**
+ * Reads a single KEY=value from the repo-root .env.local. Next.js only auto-loads .env.local from
+ * app/ (Next's own cwd), never the repo root where scripts/00-keys.ts and the demo scripts write
+ * RPC_URL/keys — so without this, the app silently falls back to 127.0.0.1:8545 even when the
+ * root .env.local points at live Sepolia. process.env still wins when the same var is exported.
+ */
+function readRootEnvValue(key: string): string | undefined {
+  const path = resolve(REPO_ROOT, ".env.local");
+  if (!existsSync(path)) return undefined;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+    if (m && m[1] === key) return m[2]!.replace(/^["']|["']$/g, "");
+  }
+  return undefined;
+}
+
+/** process.env.RPC_URL wins; else RPC_URL from the repo-root .env.local; else the local fork default. */
+export function getRpcUrl(): string {
+  return process.env.RPC_URL || readRootEnvValue("RPC_URL") || "http://127.0.0.1:8545";
+}
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -69,43 +89,24 @@ export function readFleetFile(): FleetFile {
 
 // ---------------------------------------------------------------- C5 screening (Task 8)
 
-const SCREEN_ENV_KEYS = [
-  "INTERCEPTA_API_KEY",
-  "INTERCEPTA_BASE_URL",
-  "INTERCEPTA_SCAN",
-  "INTERCEPTA_FLAG_AT",
-  "INTERCEPTA_TIMEOUT_MS",
-  "INTERCEPTA_CACHE_TTL_MS",
-  "SCREEN_FLAGGED",
-] as const;
-
-/** Minimal KEY=value reader for the repo-root .env.local (only the screening keys are taken from it). */
-function readRepoEnvLocal(): Record<string, string> {
-  const path = resolve(REPO_ROOT, ".env.local");
-  if (!existsSync(path)) return {};
-  const out: Record<string, string> = {};
-  for (const line of readFileSync(path, "utf8").split("\n")) {
-    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (m && (SCREEN_ENV_KEYS as readonly string[]).includes(m[1]!)) out[m[1]!] = m[2]!.replace(/^["']|["']$/g, "");
-  }
-  return out;
-}
-
 let cachedScreening: { signature: string; selection: ScreenSelection } | null = null;
 
 /**
- * Server-only screening selection. process.env wins (SCREEN_FLAGGED: union of both); otherwise the repo-root .env.local (where
- * scripts/demo-dirty-settlement.ts writes SCREEN_FLAGGED) is re-read on every call, so the demo
- * works without restarting the dev server. The Screen (and Intercepta's per-address cache) is
- * rebuilt only when the config changes. INTERCEPTA_API_KEY never leaves the server.
+ * Server-only screening selection, resolved by the same shared resolver scripts/verify.ts uses
+ * (@mount/verifier/screen/node screenFromEnvFile) so the CLI and the app always agree on which
+ * screening config is active. process.env wins for scalar keys; SCREEN_FLAGGED is the union of
+ * process.env and the repo-root .env.local (where scripts/demo-dirty-settlement.ts writes it),
+ * re-read on every call so the demo works without restarting the dev server. The Screen (and
+ * Intercepta's per-address cache) is rebuilt only when the config changes. INTERCEPTA_API_KEY
+ * never leaves the server.
  */
 export function getScreening(): ScreenSelection {
-  const fileEnv = readRepoEnvLocal();
-  const env: Record<string, string | undefined> = {};
-  for (const k of SCREEN_ENV_KEYS) env[k] = process.env[k] || fileEnv[k];
-  // Deny-lists are unioned, so an entry written by demo-dirty-settlement to .env.local is never masked by process.env.
-  env.SCREEN_FLAGGED = [process.env.SCREEN_FLAGGED, fileEnv.SCREEN_FLAGGED].filter(Boolean).join(",") || undefined;
-  const signature = JSON.stringify(env);
-  if (cachedScreening?.signature !== signature) cachedScreening = { signature, selection: screenFromEnv(env) };
+  const envLocalPath = resolve(REPO_ROOT, ".env.local");
+  const envLocalContents = existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : "";
+  const relevantEnv = Object.fromEntries(SCREEN_ENV_KEYS.map((k) => [k, process.env[k]]));
+  const signature = JSON.stringify({ relevantEnv, envLocalContents });
+  if (cachedScreening?.signature !== signature) {
+    cachedScreening = { signature, selection: screenFromEnvFile(process.env, envLocalPath) };
+  }
   return cachedScreening.selection;
 }

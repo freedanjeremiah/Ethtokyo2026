@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./node": "./src/node.ts",
-    "./screen": "./src/screen/index.ts"
+    "./screen": "./src/screen/index.ts",
+    "./screen/node": "./src/screen/node.ts"
   },
   "scripts": {
     "test": "vitest run",

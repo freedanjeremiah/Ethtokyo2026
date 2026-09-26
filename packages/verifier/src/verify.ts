@@ -178,7 +178,7 @@ function checkC1(ctx: Ctx, label: string, parent: string, w: Awaited<ReturnType<
     id: "C1",
     title,
     pass: true,
-    detail: `${label} REGISTERED in ${w.doorway} (tokenId ${member.tokenId}, expires ${fmtTime(member.expiry)})`,
+    detail: `${label} REGISTERED in ${w.doorway} (tokenId ${member.tokenId}, owner ${member.latestOwner}, expires ${fmtTime(member.expiry)})`,
   };
 }
 

@@ -9,7 +9,7 @@
 
 import { abiOf } from "./lib/deployment.js";
 import { actorAccount, publicClient, walletClientFor } from "./lib/env.js";
-import { labelId, loadFleet, memberByLabel, send } from "./lib/fleet.js";
+import { REG_STATUS_REGISTERED, labelId, loadFleet, memberByLabel, send } from "./lib/fleet.js";
 
 async function main() {
   const arg = process.argv[2];
@@ -18,7 +18,7 @@ async function main() {
   const { fleetRegistry } = await loadFleet();
   const c = { address: fleetRegistry, abi: abiOf("UserRegistryImpl") };
   const status = (await publicClient.readContract({ ...c, functionName: "getStatus", args: [labelId(member.label)] })) as number;
-  if (status !== 2) {
+  if (status !== REG_STATUS_REGISTERED) {
     console.log(`${member.label} is not registered (status ${status}); no tx sent`);
     return;
   }

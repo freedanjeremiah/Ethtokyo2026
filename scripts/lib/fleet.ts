@@ -58,6 +58,11 @@ export const ALL_ROLES = BigInt("0x" + "1".repeat(64));
 export const MEMBER_ROLES = 0n;
 
 export const MOUNT_LABEL = "support";
+
+/** UserRegistry entry status values (getState/getStatus), per the real ENSv2 UserRegistry ABI. */
+export const REG_STATUS_AVAILABLE = 0;
+export const REG_STATUS_RESERVED = 1;
+export const REG_STATUS_REGISTERED = 2;
 export const CANONICAL_PARENT = "vendor";
 
 export type Parent = { label: string; actor: ActorLabel; endorsed: boolean };
@@ -362,7 +367,7 @@ export async function ensureMount(parent: Parent, target: Address): Promise<stri
     status: number;
   };
   const actions: string[] = [];
-  if (state.status !== 2) {
+  if (state.status !== REG_STATUS_REGISTERED) {
     const expiry = (await nowSeconds()) + ENTRY_DURATION_SECONDS;
     await send(wallet, `register ${name}`, {
       ...c,
@@ -433,7 +438,7 @@ export async function ensureMember(member: Member, fleet: Address, sharedResolve
     latestOwner: Address;
     tokenId: bigint;
   };
-  if (state.status === 2) {
+  if (state.status === REG_STATUS_REGISTERED) {
     if (!same(state.latestOwner, agent))
       throw new Error(`${label} is registered to ${state.latestOwner}, expected ${member.actor} ${agent} — refusing to touch it`);
     const resolver = (await publicClient.readContract({ ...c, functionName: "getResolver", args: [label] })) as Address;
@@ -443,7 +448,7 @@ export async function ensureMember(member: Member, fleet: Address, sharedResolve
     }
     return `ok (tokenId ${state.tokenId})`;
   }
-  if (state.status === 1) throw new Error(`${label} is RESERVED in the fleet; refusing to guess`);
+  if (state.status === REG_STATUS_RESERVED) throw new Error(`${label} is RESERVED in the fleet; refusing to guess`);
   const expiry = (await nowSeconds()) + ENTRY_DURATION_SECONDS;
   await send(vendor, `register ${label}`, {
     ...c,

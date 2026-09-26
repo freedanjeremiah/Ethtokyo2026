@@ -2,14 +2,14 @@
 
 import { NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
-import { RPC_URL } from "@/lib/deployment.server";
+import { getRpcUrl } from "@/lib/deployment.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const client = createPublicClient({ transport: http(RPC_URL) });
+    const client = createPublicClient({ transport: http(getRpcUrl()) });
     const blockNumber = await client.getBlockNumber();
     return NextResponse.json({ blockNumber: blockNumber.toString() });
   } catch (err) {
