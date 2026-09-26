@@ -122,3 +122,20 @@ export type ResolvedFleet = {
   /** addr(60) that `clean` and `reset` restore. */
   cleanSettlement: `0x${string}`;
 };
+
+export type NameStatus = { label: string; status: "available" | "yours" | "taken" | "invalid" };
+
+export type OnboardRequest = {
+  owner: `0x${string}`;
+  vendor: string;
+  doorways: string[];
+  agents: { label: string; address: `0x${string}` }[];
+  /** Commit secret per label that still needs registering (32-byte hex, generated and kept in the browser). */
+  secrets: Record<string, `0x${string}`>;
+};
+
+export type OnboardPhase = "commit" | "wait" | "build" | "done";
+
+export type OnboardPlan =
+  | { ok: true; phase: OnboardPhase; steps: TxStep[]; canonical: string; names: NameStatus[]; waitSeconds?: number }
+  | { ok: false; error: string; names?: NameStatus[] };
