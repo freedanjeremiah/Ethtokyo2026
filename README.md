@@ -236,9 +236,10 @@ command-by-command output is in [`docs/runbook-evidence.md`](docs/runbook-eviden
 ```bash
 npm install
 
-# 1. Start an anvil fork of Sepolia. Default RPC is publicnode; override with
-#    SEPOLIA_RPC_URL if it 429s (a Tenderly gateway worked for this run).
-SEPOLIA_RPC_URL=https://sepolia.gateway.tenderly.co bash scripts/fork.sh &
+# 1. Start an anvil fork of Sepolia, pinned to block 11784409 (before the live fleet
+#    deploy, so the demo names are still free). Default RPC is the Tenderly gateway; any
+#    override via SEPOLIA_RPC_URL must be an archive node. FORK_BLOCK=latest forks head.
+bash scripts/fork.sh &
 
 # 2. Generate + fund fresh actor keys into .env.local (never anvil's default mnemonic).
 npx tsx scripts/00-keys.ts
