@@ -56,14 +56,21 @@ function SvgTag({ x, y, text, tone }: { x: number; y: number; text: string; tone
   );
 }
 
+export type MapHighlight = { doorway: string | null; agent: string | null; resolver: boolean };
+
 type Props = {
   scan: FleetScan;
   focus: { doorway: string | null; agent: string | null };
   onFocus: (f: { doorway: string | null; agent: string | null }) => void;
   onSelect: (name: string) => void;
+  /** What the hovered or running playbook step acts on: outlined in blue, the rest dimmed. */
+  highlight?: MapHighlight | null;
 };
 
-function MapSvg({ scan, focus, onFocus, onSelect }: Props) {
+function MapSvg({ scan, focus: hoverFocus, onFocus, onSelect, highlight }: Props) {
+  const hl = highlight && (highlight.doorway || highlight.agent || highlight.resolver) ? highlight : null;
+  // A highlighted step outranks pointer hover, so the map shows what Run is about to touch.
+  const focus = hl ? { doorway: hl.doorway, agent: hl.agent } : hoverFocus;
   const doors = scan.doorways;
   const agents = scan.agents;
   const rows = Math.max(doors.length, agents.length, 3);
@@ -124,7 +131,7 @@ function MapSvg({ scan, focus, onFocus, onSelect }: Props) {
         return (
           <g
             key={`n-${d.name ?? d.registry}`}
-            className={`node door ${mountOf(d)}${doorDim(d) ? " dim" : ""}`}
+            className={`node door ${mountOf(d)}${doorDim(d) ? " dim" : ""}${hl?.doorway === d.name ? " hl" : ""}`}
             transform={`translate(${DOOR.x} ${y - DOOR.h / 2})`}
             onMouseEnter={() => onFocus({ doorway: d.name, agent: null })}
             onMouseLeave={() => onFocus({ doorway: null, agent: null })}
@@ -167,7 +174,7 @@ function MapSvg({ scan, focus, onFocus, onSelect }: Props) {
         return (
           <g
             key={`n-a-${a.label}`}
-            className={`node agent${a.active ? "" : " fired"}${agentDim(a.label) ? " dim" : ""}`}
+            className={`node agent${a.active ? "" : " fired"}${agentDim(a.label) ? " dim" : ""}${hl?.agent === a.label ? " hl" : ""}`}
             transform={`translate(${AGENT.x} ${y - AGENT.h / 2})`}
             onMouseEnter={() => onFocus({ doorway: null, agent: a.label })}
             onMouseLeave={() => onFocus({ doorway: null, agent: null })}
@@ -191,7 +198,7 @@ function MapSvg({ scan, focus, onFocus, onSelect }: Props) {
         );
       })}
 
-      <g className="node resolver" transform={`translate(${RES.x} ${cy - RES.h / 2})`}>
+      <g className={`node resolver${hl?.resolver ? " hl" : ""}`} transform={`translate(${RES.x} ${cy - RES.h / 2})`}>
         <rect width={RES.w} height={RES.h} rx={18} />
         <text x={16} y={40} className="n-label">
           Shared resolver

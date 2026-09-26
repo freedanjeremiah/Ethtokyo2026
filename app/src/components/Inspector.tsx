@@ -56,9 +56,17 @@ function explain(r: VerifyApiResponse): string {
     case "orange":
       return "Endorsed doorway and live agent, but the settlement address is flagged.";
     case "red": {
+      // C2 compares against the registry at the canonical name; when that name is unmounted there is nothing to
+      // compare with, which is not the same as pointing at a copy.
+      const c2 = r.checks.find((c) => c.id === "C2");
+      const canonicalGone = !!c2 && !c2.pass && /has no registry/.test(c2.detail);
       const why = [
         failed.has("C3") ? "the fleet never agreed to be mounted under this doorway" : null,
-        failed.has("C2") ? "it points at a copy, not the fleet's own registry" : null,
+        failed.has("C2")
+          ? canonicalGone
+            ? "the fleet's canonical name is unmounted, so its own registry cannot be confirmed"
+            : "it points at a copy, not the fleet's own registry"
+          : null,
       ].filter(Boolean);
       return `It resolves, but ${why.join(" and ")}.`;
     }

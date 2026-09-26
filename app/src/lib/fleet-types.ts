@@ -86,4 +86,8 @@ export type ActionsInfo = {
   chain: "anvil" | "live" | null;
 };
 
-export type ActionResult = { ok: true; output: string } | { ok: false; error: string; output?: string };
+/** One unsigned transaction the browser wallet sends. `from` is the only address allowed to sign it. */
+export type TxStep = { what: string; signer: string; from: `0x${string}`; to: `0x${string}`; data: `0x${string}` };
+
+/** The transactions an action still needs (empty when there is nothing to do), or why it cannot run. */
+export type ActionPlan = { ok: true; steps: TxStep[] } | { ok: false; error: string };
