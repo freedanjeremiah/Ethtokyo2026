@@ -12,3 +12,4 @@ contracts/broadcast/
 # Next.js
 app/.next/
 .next/
+deployments/fleet.anvil.json
