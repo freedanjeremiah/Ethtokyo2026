@@ -87,6 +87,11 @@ export type DoorwayResult = VerifyCore & {
 export type VerifyResult = VerifyCore & {
   /** For each name in mount.parents plus the typed parent (deduped): the verdict for `<label>.<parent>`. */
   doorways: DoorwayResult[];
+  /**
+   * Parent names from mount.parents NOT verified because of the fan-out cap (MAX_DOORWAYS = 16, typed parent
+   * always kept). Usually empty.
+   */
+  doorwaysSkipped: string[];
 };
 
 export type ContractRef = { address: Address; abi: Abi };

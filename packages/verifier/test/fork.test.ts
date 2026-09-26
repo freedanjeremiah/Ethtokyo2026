@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createPublicClient, getAddress, http } from "viem";
+import { HttpRequestError, createPublicClient, custom, getAddress, http, stringToHex } from "viem";
 import { verify } from "../src/index";
 import { loadDeployment } from "../src/node";
 import type { Screen, VerifyResult } from "../src/types";
@@ -49,7 +49,11 @@ function script(...args: string[]) {
 }
 
 describe.skipIf(!!SKIP)("verifier against the fork", () => {
-  beforeAll(() => script("scripts/demo-reset.ts"));
+  beforeAll(async () => {
+    script("scripts/demo-reset.ts");
+    // Warm the fork's remote-state cache: the < 2 s budget is for a warm fork (controller ruling 11).
+    await Promise.all(["mia.support.shopa.eth", "mia.support.scam.eth"].map((n) => v(n)));
+  });
   afterAll(() => script("scripts/demo-reset.ts"));
 
   describe("green", () => {
@@ -130,6 +134,30 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
         expect(r.doorways).toEqual([]);
       });
     }
+  });
+
+  it("a 429 on the mount.parents read rejects instead of showing a legit member as red", async () => {
+    const needle = stringToHex("mount.parents").slice(2);
+    const upstream = http(RPC_URL)({});
+    const flaky = createPublicClient({
+      transport: custom(
+        {
+          async request(args: { method: string; params?: unknown }) {
+            if (args.method === "eth_call" && JSON.stringify(args.params).includes(needle))
+              throw new HttpRequestError({ url: RPC_URL, status: 429, details: "Too Many Requests" });
+            return upstream.request(args as never);
+          },
+        },
+        { retryCount: 0 },
+      ),
+    });
+    await expect(verify(flaky, "mia.support.shopa.eth", { deployment })).rejects.toThrow();
+    // same client path without the fault still verifies green
+    expect((await verify(createPublicClient({ transport: custom({ request: (a) => upstream.request(a as never) }) }), "mia.support.shopa.eth", { deployment })).verdict).toBe("green");
+  });
+
+  it("doorwaysSkipped is empty for the 3-parent roster", async () => {
+    expect((await v("mia.support.shopa.eth")).doorwaysSkipped).toEqual([]);
   });
 
   describe("screening (C5)", () => {

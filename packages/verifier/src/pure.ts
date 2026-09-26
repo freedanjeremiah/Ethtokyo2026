@@ -68,6 +68,22 @@ export function doorwayParents(parents: string[] | undefined, typedParent: strin
   return out;
 }
 
+/** Max sibling doorways verified per call (bounds fan-out from an arbitrarily long mount.parents record). */
+export const MAX_DOORWAYS = 16;
+
+/**
+ * Keeps at most `max` doorway parents, always including the typed parent; returns the rest as `skipped`
+ * (in mount.parents order).
+ */
+export function capDoorways(parents: string[], typedParent: string, max = MAX_DOORWAYS): { parents: string[]; skipped: string[] } {
+  if (parents.length <= max) return { parents, skipped: [] };
+  const others = parents.filter((p) => p !== typedParent);
+  const hasTyped = !!typedParent && parents.includes(typedParent);
+  const keepOthers = others.slice(0, hasTyped ? max - 1 : max);
+  const keep = new Set(hasTyped ? [...keepOthers, typedParent] : keepOthers);
+  return { parents: parents.filter((p) => keep.has(p)), skipped: parents.filter((p) => !keep.has(p)) };
+}
+
 export type AggregateInput = {
   member: boolean;
   memberDetail: string;

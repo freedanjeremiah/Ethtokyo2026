@@ -12,12 +12,23 @@
 //
 // All reads are pinned to one block. Never throws for bad input: invalid names are black "invalid name".
 
-import { type Address, type Client, type Hex, getAddress, labelhash, zeroAddress } from "viem";
+import {
+  type Address,
+  BaseError,
+  type Client,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  type Hex,
+  getAddress,
+  labelhash,
+  zeroAddress,
+} from "viem";
 import { getBlock, getEnsAddress, getEnsText, readContract } from "viem/actions";
 import {
   aggregateVerdict,
   dnsDecode,
   dnsEncode,
+  capDoorways,
   doorwayParents,
   fmtTime,
   parseParents,
@@ -55,11 +66,23 @@ async function read<T>(ctx: Ctx, address: Address, abi: VerifierDeployment["regi
   return (await readContract(ctx.client, { address, abi, functionName, args, blockNumber: ctx.blockNumber } as never)) as T;
 }
 
+/**
+ * True only for a genuine contract-level outcome: the call reverted (with or without revert data) or the target
+ * returned no data (no code / not that interface). Transport failures (HTTP 429, timeouts, RPC errors) are NOT
+ * reverts and must propagate, so they can never be mistaken for "not a member" or "counterfeit".
+ */
+export function isContractRevert(err: unknown): boolean {
+  if (!(err instanceof BaseError)) return false;
+  return !!err.walk((e) => e instanceof ContractFunctionRevertedError || e instanceof ContractFunctionZeroDataError);
+}
+
+/** Maps a contract revert to `{ ok: false }`; rethrows every other error (verify() then rejects). */
 async function tryRead<T>(p: Promise<T>): Promise<{ ok: true; v: T } | { ok: false; error: string }> {
   try {
     return { ok: true, v: await p };
   } catch (err) {
-    return { ok: false, error: (err as Error).message.split("\n")[0] ?? "read failed" };
+    if (!isContractRevert(err)) throw err;
+    return { ok: false, error: (err as Error).message.split("\n")[0] ?? "read reverted" };
   }
 }
 
@@ -89,9 +112,9 @@ async function findLeafResolver(ctx: Ctx, name: string) {
 async function readRecords(ctx: Ctx, name: string) {
   const ur = ctx.d.universalResolver.address;
   const opt = { name, universalResolverAddress: ur, blockNumber: ctx.blockNumber };
-  const text = (key: string) => getEnsText(ctx.client, { ...opt, key }).catch(() => null);
+  const text = (key: string) => getEnsText(ctx.client, { ...opt, key });
   const [address, canonical, parents, agentContext, agentEndpointWeb] = await Promise.all([
-    getEnsAddress(ctx.client, opt).catch(() => null),
+    getEnsAddress(ctx.client, opt),
     text("mount.canonical"),
     text("mount.parents"),
     text("agent-context"),
@@ -215,6 +238,13 @@ async function checkC5(ctx: Ctx, address: Address): Promise<Check> {
   return { id: "C5", title, pass: false, detail: `unknown${why}`, screen: "unknown" };
 }
 
+/** Normalizes a name read from chain (findCanonicalName); an unnormalizable name is kept verbatim so C2 fails visibly. */
+function normalizeOnChainName(name: string | null): string | null {
+  if (!name) return null;
+  const n = safeNormalize(name);
+  return n.ok ? n.name : name;
+}
+
 // ---------------------------------------------------------------- one name
 
 function invalidResult(input: string, error: string, blockNumber: bigint | null): VerifyCore {
@@ -258,7 +288,7 @@ async function verifyOne(ctx: Ctx, input: string): Promise<VerifyCore> {
   const registries = {
     doorway: w.doorway,
     canonical: rCanonical?.ok ? getAddress(rCanonical.v) : null,
-    canonicalNameOfDoorway: canonName?.ok && canonName.v !== "0x" ? dnsDecode(canonName.v) || null : null,
+    canonicalNameOfDoorway: canonName?.ok && canonName.v !== "0x" ? normalizeOnChainName(dnsDecode(canonName.v)) : null,
   };
 
   const checks: Check[] = [
@@ -311,11 +341,11 @@ function memoScreen(screen: Screen): (a: Address) => Promise<ScreenResult> {
 
 /**
  * Verifies `name` (e.g. "mia.support.shopa.eth"). Never throws for bad names (black "invalid name");
- * RPC failures (chain unreachable) do reject.
+ * transport/RPC failures (unreachable, HTTP 429, timeouts) reject — they are never turned into red/black.
  */
 export async function verify(client: Client, name: string, opts: VerifyOptions): Promise<VerifyResult> {
   const pre = safeNormalize(name);
-  if (!pre.ok) return { ...invalidResult(name, pre.error, null), doorways: [] };
+  if (!pre.ok) return { ...invalidResult(name, pre.error, null), doorways: [], doorwaysSkipped: [] };
 
   const block = await getBlock(client, { blockTag: "latest" });
   const ctx: Ctx = {
@@ -327,14 +357,14 @@ export async function verify(client: Client, name: string, opts: VerifyOptions):
   };
 
   const main = await verifyOne(ctx, name);
-  if (opts.doorways === false || !main.label) return { ...main, doorways: [] };
+  if (opts.doorways === false || !main.label) return { ...main, doorways: [], doorwaysSkipped: [] };
 
   // Doorways never recurse: siblings are computed with verifyOne (no doorways of their own).
-  const parents = doorwayParents(main.resolved.parents, main.parent ?? "");
+  const { parents, skipped } = capDoorways(doorwayParents(main.resolved.parents, main.parent ?? ""), main.parent ?? "");
   const doorways: DoorwayResult[] = await Promise.all(
     parents.map(async (p) =>
       p === main.parent ? { ...main, isInput: true } : { ...(await verifyOne(ctx, `${main.label}.${p}`)), isInput: false },
     ),
   );
-  return { ...main, doorways };
+  return { ...main, doorways, doorwaysSkipped: skipped };
 }
