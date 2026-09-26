@@ -20,5 +20,11 @@ deployments/fleet.anvil.json
 # Playwright MCP verification screenshots (repo-root output dir)
 .playwright-mcp/
 
+# Design-tool scratch: review screenshots, decision-page payloads and logs, generated mocks
+app/.impeccable/review/
+app/.impeccable/questions/
+app/.impeccable/mocks/
+app/.impeccable/direction-payload.json
+
 # TypeScript incremental build info
 *.tsbuildinfo
