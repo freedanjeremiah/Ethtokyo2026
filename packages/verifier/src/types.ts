@@ -22,6 +22,8 @@ export type Check = {
   detail: string;
   /** Only on C5: the raw screening status ("unknown" => pass:false but does not change the verdict). */
   screen?: ScreenStatus;
+  /** Only on C5: the screen's own reason string, verbatim (absent if the screen gave none). */
+  screenReason?: string;
 };
 
 export type Membership = {

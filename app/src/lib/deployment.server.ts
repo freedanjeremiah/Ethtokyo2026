@@ -94,7 +94,7 @@ function readRepoEnvLocal(): Record<string, string> {
 let cachedScreening: { signature: string; selection: ScreenSelection } | null = null;
 
 /**
- * Server-only screening selection. process.env wins; otherwise the repo-root .env.local (where
+ * Server-only screening selection. process.env wins (SCREEN_FLAGGED: union of both); otherwise the repo-root .env.local (where
  * scripts/demo-dirty-settlement.ts writes SCREEN_FLAGGED) is re-read on every call, so the demo
  * works without restarting the dev server. The Screen (and Intercepta's per-address cache) is
  * rebuilt only when the config changes. INTERCEPTA_API_KEY never leaves the server.
@@ -103,6 +103,8 @@ export function getScreening(): ScreenSelection {
   const fileEnv = readRepoEnvLocal();
   const env: Record<string, string | undefined> = {};
   for (const k of SCREEN_ENV_KEYS) env[k] = process.env[k] || fileEnv[k];
+  // Deny-lists are unioned, so an entry written by demo-dirty-settlement to .env.local is never masked by process.env.
+  env.SCREEN_FLAGGED = [process.env.SCREEN_FLAGGED, fileEnv.SCREEN_FLAGGED].filter(Boolean).join(",") || undefined;
   const signature = JSON.stringify(env);
   if (cachedScreening?.signature !== signature) cachedScreening = { signature, selection: screenFromEnv(env) };
   return cachedScreening.selection;

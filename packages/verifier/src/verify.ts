@@ -233,9 +233,10 @@ async function checkC5(ctx: Ctx, address: Address): Promise<Check> {
     r = { status: "unknown", reason: `screen failed: ${(err as Error).message.split("\n")[0]}` };
   }
   const why = r.reason ? `: ${r.reason}` : "";
-  if (r.status === "clean") return { id: "C5", title, pass: true, detail: `${address} clean${why}`, screen: "clean" };
-  if (r.status === "flagged") return { id: "C5", title, pass: false, detail: `${address} flagged${why}`, screen: "flagged" };
-  return { id: "C5", title, pass: false, detail: `unknown${why}`, screen: "unknown" };
+  const extra = r.reason ? { screenReason: r.reason } : {};
+  if (r.status === "clean") return { id: "C5", title, pass: true, detail: `${address} clean${why}`, screen: "clean", ...extra };
+  if (r.status === "flagged") return { id: "C5", title, pass: false, detail: `${address} flagged${why}`, screen: "flagged", ...extra };
+  return { id: "C5", title, pass: false, detail: `unknown${why}`, screen: "unknown", ...extra };
 }
 
 /** Normalizes a name read from chain (findCanonicalName); an unnormalizable name is kept verbatim so C2 fails visibly. */

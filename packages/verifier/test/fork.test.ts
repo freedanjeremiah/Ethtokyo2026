@@ -245,18 +245,19 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
       }
       const scam = await v("mia.support.scam.eth", screen);
       expect(scam.verdict).toBe("red"); // counterfeit + dirty: red has precedence
-      expect(check(scam, "C5")?.screen).toBe("flagged");
+      expect(check(scam, "C5")).toMatchObject({ screen: "flagged", screenReason: "listed in SCREEN_FLAGGED (static list)" });
 
       const again = script("scripts/demo-dirty-settlement.ts");
       expect(again).toContain("already dirty");
       expect(await client.getBlockNumber()).toBe(before + 1n);
     });
 
-    it("screening outage with a dirty settlement: C5 unknown, verdict ENS-only (green), never silently clean", async () => {
+    it("injected screen outage (unknown): verdict stays ENS-only green, C5 unknown on every doorway, reason kept", async () => {
       const r = await v("mia.support.shopa.eth", async () => ({ status: "unknown", reason: "Intercepta quick-scan unavailable: timed out" }));
       expect(r.verdict).toBe("green");
       expect(check(r, "C5")).toMatchObject({ pass: false, screen: "unknown" });
       expect(r.reasons.join()).toContain("unknown");
+      expect(check(r, "C5")?.screenReason).toBe("Intercepta quick-scan unavailable: timed out");
       expect(r.doorways.every((d) => d.checks.find((c) => c.id === "C5")?.screen === "unknown")).toBe(true);
     });
 

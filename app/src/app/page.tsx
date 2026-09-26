@@ -37,12 +37,23 @@ function ScreeningLine({ result }: { result: VerifyResult }) {
   const state = screenState(result, result.screening?.source);
   const c5 = result.checks.find((c) => c.id === "C5");
   const addr = result.resolved.address;
+  const reason = c5?.screenReason ?? "no reason given";
   if (state === "unknown")
     return (
       <div className="screen-badge unavailable" role="status">
         <span className="icon">?</span>
         <span>
-          <strong>SCREENING UNAVAILABLE</strong> — counterparty {addr} could not be screened ({c5?.detail}). The verdict above is ENS-only.
+          <strong>SCREENING UNAVAILABLE</strong> — counterparty {addr} could not be screened ({reason}). The verdict above is ENS-only.
+        </span>
+      </div>
+    );
+  if (state === "flagged" && result.verdict === "orange")
+    return (
+      <div className="screen-badge flagged" role="status">
+        <span className="icon">⚠</span>
+        <span>
+          <strong>Endorsed doorway, flagged counterparty.</strong> The mount is legitimate (C1–C4 pass), but the fleet&apos;s settlement
+          address {addr} is flagged: {reason}. Do not pay it.
         </span>
       </div>
     );
@@ -51,8 +62,7 @@ function ScreeningLine({ result }: { result: VerifyResult }) {
       <div className="screen-badge flagged" role="status">
         <span className="icon">⚠</span>
         <span>
-          <strong>Endorsed doorway, flagged counterparty.</strong> The mount is legitimate (C1–C4 pass), but the fleet&apos;s settlement
-          address {addr} is flagged: {c5?.detail.replace(`${addr} flagged`, "").replace(/^: /, "") || "flagged"}. Do not pay it.
+          Settlement address {addr} is also flagged: {reason}.
         </span>
       </div>
     );
@@ -112,7 +122,9 @@ function DoorwayChip({ doorway, source }: { doorway: DoorwayResult; source: stri
       </div>
       <div className="detail">{doorway.summary}</div>
       {state === "unknown" && <div className="chip-tag unavailable">? screening unavailable</div>}
-      {state === "flagged" && <div className="chip-tag flagged">⚠ flagged counterparty</div>}
+      {state === "flagged" && (
+        <div className="chip-tag flagged">{doorway.verdict === "orange" ? "⚠ flagged counterparty" : "⚠ settlement also flagged"}</div>
+      )}
     </div>
   );
 }
