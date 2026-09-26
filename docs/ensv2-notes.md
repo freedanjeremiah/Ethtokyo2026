@@ -1,4 +1,4 @@
-# ENSv2 on Sepolia — pinned deployment and semantics (MOUNT Task 2)
+# ENSv2 on Sepolia — pinned deployment and semantics (ENF Task 2)
 
 Researched 2026-09-26 against Sepolia block ~11,784,2xx. Every claim is tagged:
 
@@ -37,7 +37,7 @@ Source ↔ bytecode:
 `deployments/sepolia.json` = `{ chainId: 11155111, source: {...}, contracts: { <name>: { address, abi: "abis/<name>.json", codeHash } } }`.
 `codeHash` = `keccak256(eth_getCode)` on Sepolia; `scripts/check-deployment.ts` re-checks it, so a silent redeploy/upgrade shows as FAIL.
 
-| Name | Address | Role in MOUNT |
+| Name | Address | Role in ENF |
 |---|---|---|
 | RootRegistry | `0x9703DBD26dAB89504490994138cF2c575251a9cE` | root of the v2 tree; `getSubregistry("eth") = ETHRegistry` |
 | ETHRegistry | `0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E` | `.eth` registry (a `PermissionedRegistry`), `getParent() = (RootRegistry, "eth")` |
@@ -111,7 +111,7 @@ Fork output for a freshly registered `mia`: `(2, 1821937752, 0x358d…c24b, 2576
 2. Otherwise (`unsafeTransfer`, or safe on an emancipated registry) it requires the **owner** (`from`) to hold `ROLE_CAN_TRANSFER_ADMIN` on the token, else `TransferDisallowed(tokenId, from)`. Operator approval cannot bypass: the check reads `from`'s roles.
 3. Roles move with the token (`_transferRoles`).
 
-⇒ **Soulbound = register the member with `roleBitmap` that lacks `ROLE_CAN_TRANSFER_ADMIN`** (MOUNT uses `0`). Fork step 8 with `roles=0`: mia `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`; mia `unsafeTransfer` → `TransferDisallowed`; after `setApprovalForAll(kai)`, kai `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`, kai `unsafeTransfer` → `TransferDisallowed`. Mia also cannot `setResolver` on her own name (`EACUnauthorizedAccountRoles`).
+⇒ **Soulbound = register the member with `roleBitmap` that lacks `ROLE_CAN_TRANSFER_ADMIN`** (ENF uses `0`). Fork step 8 with `roles=0`: mia `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`; mia `unsafeTransfer` → `TransferDisallowed`; after `setApprovalForAll(kai)`, kai `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`, kai `unsafeTransfer` → `TransferDisallowed`. Mia also cannot `setResolver` on her own name (`EACUnauthorizedAccountRoles`).
 
 Note: `.eth` names from ETHRegistrar get `REGISTRATION_ROLE_BITMAP = SET_SUBREGISTRY(+ADMIN) | SET_RESOLVER(+ADMIN) | CAN_TRANSFER_ADMIN` (`src/registrar/ETHRegistrar.sol:18-23`); fork: `ETHRegistry.roles(labelhash("vendor"), vendor) = 0x1110000000000000000000000000000001100000`. The owner does **not** get RENEW/UNREGISTER on ETHRegistry (renew goes through the registrar). `ETHRegistry.isEmancipated() = true` on Sepolia. **VERIFIED-ONCHAIN**
 
@@ -166,7 +166,7 @@ function getParent() view returns (IRegistry parent, string label);
 function register(string label, address owner, IRegistry registry, address resolver, uint256 roleBitmap, uint64 expiry) returns (uint256 tokenId);  // PermissionedRegistry.sol:207-220, _register :440-506
 ```
 - Needs root `ROLE_REGISTRAR` (or `ROLE_REGISTER_RESERVED` for a reserved label). `owner == 0` with `roleBitmap == 0` reserves instead. `expiry` must be in the future. Reverts `LabelAlreadyRegistered` / `LabelAlreadyReserved` if live. Writes the label to LabelStore, mints the ERC-1155 token to `owner`, grants `roleBitmap` on the new token resource (admin roles allowed here, and only here).
-- MOUNT: `FLEET.register("mia", MIA, address(0), SHARED_RESOLVER, 0, expiry)` — gas ≈ 125k.
+- ENF: `FLEET.register("mia", MIA, address(0), SHARED_RESOLVER, 0, expiry)` — gas ≈ 125k.
 
 ### 3.6 Unregister / burn
 ```solidity
@@ -179,7 +179,7 @@ Burns the token, bumps both version ids, sets `expiry = block.timestamp` (name b
 ### 4.1 Records and the default record (VERIFIED-SOURCE + VERIFIED-ONCHAIN)
 - Records live in `_records[recordId]`; `_recordIds[node]` maps a namehash to a record id (`PermissionedResolver.sol:94-100`). Setters take a **DNS-encoded name** (not a node) and create a record for `namehash(name)` on first write (`_ensureRecord`, `:352-360`).
 - Reads go only through ENSIP-10 `resolve(bytes name, bytes data)`; the node inside `data` is ignored and the record is chosen by `namehash(name)` (`AbstractRecordResolver.sol:108-123`). There are no direct `text(node,key)`/`addr(node)` functions on this contract — use the UniversalResolver / viem.
-- **Default record**: if `namehash(name)` has no record, `_record` falls back to `_recordIds[bytes32(0)]` — the record of the root name, DNS-encoded `0x00` (`:381-387`, doc `:54`). So writing `setText(0x00, key, value)` / `setAddress(0x00, 60, addr)` gives **every** name that reaches this resolver without its own record those values. Both text and addr (and data, contenthash, …) come from the same record. Fork: after 3 writes on `0x00` (`getRecordId(0x0) = 1`), `mia.support.{vendor,shopa,scam}.eth` and `kai.support.shopa.eth` all returned `text(mount.canonical) = "support.vendor.eth"` and `addr = 0x…bEEF` through the real UR. ⇒ the roster keys **can** live in the default bundle. **VERIFIED-ONCHAIN (fork)**
+- **Default record**: if `namehash(name)` has no record, `_record` falls back to `_recordIds[bytes32(0)]` — the record of the root name, DNS-encoded `0x00` (`:381-387`, doc `:54`). So writing `setText(0x00, key, value)` / `setAddress(0x00, 60, addr)` gives **every** name that reaches this resolver without its own record those values. Both text and addr (and data, contenthash, …) come from the same record. Fork: after 3 writes on `0x00` (`getRecordId(0x0) = 1`), `mia.support.{vendor,shopa,scam}.eth` and `kai.support.shopa.eth` all returned `text(enf.canonical) = "support.vendor.eth"` and `addr = 0x…bEEF` through the real UR. ⇒ the roster keys **can** live in the default bundle. **VERIFIED-ONCHAIN (fork)**
 - `addr(coinType)` falls back to the default coin type (ENSIP-19) for EVM chains when unset (`AbstractRecordResolver.sol:169-179`).
 
 ### 4.2 `linkToNode` / `linkToRecord` (VERIFIED-SOURCE + VERIFIED-ONCHAIN)
@@ -188,13 +188,13 @@ function linkToNode(bytes sourceName, bytes32 targetNode);   // :231-240  source
 function linkToRecord(bytes sourceName, uint256 recordId);   // :243-251  recordId 0 = unlink (fall back to default); reverts InvalidRecord if > getRecordCount()
 function getRecordId(bytes32 node) view returns (uint256);  function getRecordCount() view returns (uint256);
 ```
-Both require root `ROLE_LINK = 1<<28` (`PermissionedResolverLib.sol:48`). Fork step 7: `setText(dns("kai.support.vendor.eth"), mount.canonical, "KAI-SPECIFIC")` → only that name changed; `linkToNode(dns("kai.support.shopa.eth"), namehash("kai.support.vendor.eth"))` → shopa doorway now returns `KAI-SPECIFIC`; `linkToRecord(dns("kai.support.shopa.eth"), 0)` → back to the default. Mia calling `linkToNode` → `EACUnauthorizedAccountRoles(0, 0x10000000, mia)`.
+Both require root `ROLE_LINK = 1<<28` (`PermissionedResolverLib.sol:48`). Fork step 7: `setText(dns("kai.support.vendor.eth"), enf.canonical, "KAI-SPECIFIC")` → only that name changed; `linkToNode(dns("kai.support.shopa.eth"), namehash("kai.support.vendor.eth"))` → shopa doorway now returns `KAI-SPECIFIC`; `linkToRecord(dns("kai.support.shopa.eth"), 0)` → back to the default. Mia calling `linkToNode` → `EACUnauthorizedAccountRoles(0, 0x10000000, mia)`.
 
 ### 4.3 Resolver permissions (VERIFIED-SOURCE + VERIFIED-ONCHAIN)
 - Permissions are **per record-key argument or root, not per name**: `setText(name,key,…)` checks `ROLE_SET_TEXT` on `resource(key) = keccak256(key)` or root (`PermissionedResolver.sol:220-228, 76-78`). A holder of `ROLE_SET_TEXT` for key K can write K on **every** name and on the default record (confirms idea.md loophole #3). `setContenthash`, `setName`, `linkTo*` are root-only.
 - `grantRoles` is disabled; use `grantSetterRoles(bytes setterCalldata, account)` (`:254-261, 297-304`) or `grantRootRoles`.
 - Roles (`PermissionedResolverLib.sol:11-60`): SET_ADDRESS `1<<0`, SET_TEXT `1<<4`, SET_CONTENTHASH `1<<8`, SET_ABI `1<<12`, SET_INTERFACE `1<<16`, SET_NAME `1<<20`, SET_DATA `1<<24`, LINK `1<<28`, CAN_NAME `1<<120`, UPGRADE `1<<124`; admins `<<128`.
-- Fork: mia `setText(0x00, …)` → `EACUnauthorizedAccountRoles(keccak256("mount.canonical"), 16, mia)`.
+- Fork: mia `setText(0x00, …)` → `EACUnauthorizedAccountRoles(keccak256("enf.canonical"), 16, mia)`.
 
 ## 5. Resolution path (UniversalResolver V2)
 
@@ -247,7 +247,7 @@ deployProxy(PermissionedResolverImpl, 1, initialize([(OPERATOR, ALL)], [])) → 
 P_REG.register("support", P_ADDR, 0, 0, ALL, now+1y); P_REG.setSubregistry(labelhash("support"), FLEET)
 FLEET.setParent(VENDOR_REG, "support"); VENDOR_REG.setParent(ETHRegistry, "vendor")
 # default record
-RES.setText(0x00, "mount.canonical", "support.vendor.eth"); RES.setText(0x00, "mount.parents", "support.vendor.eth,support.shopa.eth"); RES.setAddress(0x00, 60, 0x…beef)
+RES.setText(0x00, "enf.canonical", "support.vendor.eth"); RES.setText(0x00, "enf.parents", "support.vendor.eth,support.shopa.eth"); RES.setAddress(0x00, 60, 0x…beef)
 # members
 FLEET.register("mia", MIA, 0, RES, 0, now+1y); FLEET.register("kai", KAI, 0, RES, 0, now+1y)
 # resolve

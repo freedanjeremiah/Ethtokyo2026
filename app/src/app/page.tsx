@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DoorwayResult, Verdict, VerifyCore } from "@mount/verifier";
+import type { DoorwayResult, Verdict, VerifyCore } from "@enf/verifier";
 import type { VerifyApiResponse } from "@/lib/api-types";
 
 type VerifyResult = VerifyApiResponse;
@@ -224,7 +224,7 @@ export default function Page() {
     <main>
       <div className="top-row">
         <div className="brand">
-          MOUNT <span>one fleet, many doorways</span>
+          ENF <span>Ethereum Naming Fleet · one fleet, many doorways</span>
         </div>
         <div className={`ticker${rpcDown ? " down" : ""}`}>
           <span className="dot" />

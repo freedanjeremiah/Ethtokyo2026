@@ -104,11 +104,11 @@ describe("C2 / C3 builders", () => {
     expect(checkC2(FLEET, "support.vendor.eth", FLEET, "support.scam.eth").pass).toBe(false);
     expect(checkC2(FLEET, undefined, null, null).pass).toBe(false);
   });
-  it("C3 requires the typed parent in mount.parents", () => {
+  it("C3 requires the typed parent in enf.parents", () => {
     expect(checkC3("support.shopa.eth", ["support.vendor.eth", "support.shopa.eth"], []).pass).toBe(true);
     const r = checkC3("support.scam.eth", ["support.vendor.eth", "support.shopa.eth"], []);
     expect(r.pass).toBe(false);
-    expect(r.detail).toContain("support.scam.eth is not in mount.parents");
+    expect(r.detail).toContain("support.scam.eth is not in enf.parents");
     expect(checkC3("support.shopa.eth", undefined, []).pass).toBe(false);
   });
 });

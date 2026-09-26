@@ -1,6 +1,6 @@
 // scripts/setup-names.ts
 //
-// Gives each MOUNT actor their `.eth` name via the real ETHRegistrar
+// Gives each ENF actor their `.eth` name via the real ETHRegistrar
 // commit/reveal flow (scripts/lib/names.ts), then verifies ownership by
 // reading it back from ETHRegistry. Idempotent: safe to re-run once names
 // are already owned by the right actor.

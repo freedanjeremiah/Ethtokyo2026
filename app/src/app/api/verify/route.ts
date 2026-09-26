@@ -5,14 +5,14 @@
 // A syntactically-bad ENS name is NOT a 400: verify() returns a normal 200 "black"
 // result for it ("invalid name: ...").
 //
-// C5 (counterparty screening) uses getScreening() -> screenFromEnvFile (@mount/verifier/screen/node,
+// C5 (counterparty screening) uses getScreening() -> screenFromEnvFile (@enf/verifier/screen/node,
 // the same resolver scripts/verify.ts uses), server side only: Intercepta when
 // INTERCEPTA_API_KEY is set, the SCREEN_FLAGGED static list otherwise. A screening outage is C5 "unknown"
 // (the verdict stays ENS-determined and the UI shows "screening unavailable"), never a 502.
 
 import { NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
-import { verify, type VerifyResult } from "@mount/verifier";
+import { verify, type VerifyResult } from "@enf/verifier";
 import { FleetFileMissingError, type FleetFile, getDeployment, getRpcUrl, getScreening, readFleetFile } from "@/lib/deployment.server";
 import type { VerifyApiResponse } from "@/lib/api-types";
 
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `RPC unavailable: ${message}` }, { status: 502 });
   }
 
-  // Doorways come from the typed name's own mount.parents record. If that record
+  // Doorways come from the typed name's own enf.parents record. If that record
   // couldn't be read at all (e.g. the typed name is fully unregistered), fall back to
   // also showing the fleet's known canonical doorway so the strip isn't just the typed
   // name alone (packages/verifier task-6-report, Concern #2).

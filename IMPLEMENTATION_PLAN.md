@@ -1,4 +1,4 @@
-# MOUNT — Brainstorm & Implementation Plan
+# ENF — Brainstorm & Implementation Plan
 
 Priority order: **ENS (must win) → Intercepta (gated at hour 20) → Curvegrid (30 min)**.
 Idea and rationale: [`idea.md`](idea.md).
@@ -43,10 +43,10 @@ Consequences we must prove in tests:
 | `addr(60)` | fleet settlement address | Intercepta screens this |
 | `agent-context` (ENSIP-26) | fleet description URL/JSON | agent discovery |
 | `agent-endpoint[mcp]` / `[web]` | fleet endpoint | agent discovery |
-| `mount.canonical` | `support.vendor.eth` | canonical name claim |
-| `mount.parents` | comma list of endorsed parent names (normalized) | **two-sided consent roster** |
+| `enf.canonical` | `support.vendor.eth` | canonical name claim |
+| `enf.parents` | comma list of endorsed parent names (normalized) | **two-sided consent roster** |
 
-Open design choice: store the roster (`mount.canonical`, `mount.parents`) as text records on the **canonical name's node** vs. in the default bundle. **Recommendation:** default bundle — every member then carries the roster through any doorway, and it's written once by the operator. Decide in Phase 0 after confirming default-record semantics for text keys.
+Open design choice: store the roster (`enf.canonical`, `enf.parents`) as text records on the **canonical name's node** vs. in the default bundle. **Recommendation:** default bundle — every member then carries the roster through any doorway, and it's written once by the operator. Decide in Phase 0 after confirming default-record semantics for text keys.
 
 ### A4. Verifier algorithm (the product)
 
@@ -55,15 +55,15 @@ Input: any name `L.support.P` typed by the user.
 ```
 1. n = normalize(input)                            // @adraffy/ens-normalize via viem
 2. resolve via UniversalResolver (stock viem):
-     addr, text(mount.canonical), text(mount.parents), ENSIP-26 keys
+     addr, text(enf.canonical), text(enf.parents), ENSIP-26 keys
    → ResolverNotFound / no addr  ⇒  ⚫ NOT A MEMBER (true negative)
 3. Walk registries down from root:
      parentRegistry(P) → subregistry("support") = R_doorway
-     canonicalRegistry = subregistry of mount.canonical's parent chain = R_canonical
+     canonicalRegistry = subregistry of enf.canonical's parent chain = R_canonical
 4. Checks
      C1 token exists in R_doorway for label L, not expired         (member alive)
      C2 R_doorway == R_canonical                                    (canonical registry match)
-     C3 normalize(P-side parent name) ∈ mount.parents               (two-sided consent)
+     C3 normalize(P-side parent name) ∈ enf.parents               (two-sided consent)
      C4 parent name not expired                                     (doorway alive)
      C5 [Intercepta, gated] screen(addr) == clean                   (party clean)
 5. Verdict
@@ -153,7 +153,7 @@ Every sentence in `idea.md` §2 and §6 becomes a test:
 - [ ] Implement A4 in `packages/verifier` using viem's UniversalResolver path for records + direct registry reads for the walk.
 - [ ] Normalize every input (Rule 1); never string-match `.eth` (Rule 5); no hardcoded addresses (Rule 4).
 - [ ] Return a structured result `{ verdict, checks: [{id, pass, detail}], doorways: [...] }`.
-- [ ] Doorway discovery: read `mount.parents` → build sibling names → verify each (powers the "three consequences" panel).
+- [ ] Doorway discovery: read `enf.parents` → build sibling names → verify each (powers the "three consequences" panel).
 - [ ] Vitest against the anvil fork for all four truth-table rows.
 - [ ] CLI: `pnpm verify mia.support.scam.eth`.
 
@@ -190,7 +190,7 @@ Framing: *is the doorway endorsed* (ENS) × *is the party clean* (Intercepta). S
 
 ## Part D — Curvegrid (≈30 min, any time after the gate)
 
-- [ ] README section: "MOUNT for AI agents" — agent fleets as namespaces; merchants hire/fire fleets with one tx; any agent client verifies an agent's doorway before transacting (ENSIP-26 discovery keys served from the default bundle).
+- [ ] README section: "ENF for AI agents" — agent fleets as namespaces; merchants hire/fire fleets with one tx; any agent client verifies an agent's doorway before transacting (ENSIP-26 discovery keys served from the default bundle).
 - [ ] Confirm the exact Curvegrid AI-agent prize criteria at the event; if it requires their platform (MultiBaas), the cheapest honest slot is indexing `FleetRegistry` + subregistry-change events to power a "mount history" timeline. Only do this if it fits in ~2h after Part C.
 
 ---
@@ -227,7 +227,7 @@ Parts B–D are the narrative. This part is the binding, task-by-task version us
 - **Keys:** fresh keys only (never anvil default mnemonic accounts). Keys live in `.env.local` (gitignored). Never commit a private key. Never ship keys to the browser.
 - **Tooling:** Node 24, **npm workspaces** (no pnpm), TypeScript (ESM), viem ≥ 2.35, vitest for TS tests, Foundry (`~/.foundry/bin/forge`, `anvil`, `cast`) for Solidity/fork tests, Next.js App Router for the UI.
 - **Actors / labels:** vendor `vendor.eth`, merchants `shopa.eth`, `shopb.eth`, attacker `scam.eth`; mount label `support`; agents `mia`, `kai`, `rin`. Canonical name `support.vendor.eth`.
-- **Roster record keys** (in the shared resolver's default `0x00` bundle unless Task 2 proves text keys can't live there): `mount.canonical` = `support.vendor.eth`; `mount.parents` = comma-separated normalized parent names, e.g. `support.vendor.eth,support.shopa.eth,support.shopb.eth`. Plus `addr(60)` = fleet settlement address, and ENSIP-26 `agent-context`, `agent-endpoint[web]`.
+- **Roster record keys** (in the shared resolver's default `0x00` bundle unless Task 2 proves text keys can't live there): `enf.canonical` = `support.vendor.eth`; `enf.parents` = comma-separated normalized parent names, e.g. `support.vendor.eth,support.shopa.eth,support.shopb.eth`. Plus `addr(60)` = fleet settlement address, and ENSIP-26 `agent-context`, `agent-endpoint[web]`.
 - **Verdicts:** `green` (all checks pass), `red` (resolves but C2 canonical-registry or C3 two-sided-consent fails), `orange` (C5 screening flagged), `black` (not a member: ResolverNotFound / no resolver / token missing or expired). Check ids `C1`..`C5` exactly as in Part A §A4.
 - **Out of scope for autonomous execution:** funding keys, registering names on live Sepolia, deploying to Vercel, recording video.
 
@@ -266,7 +266,7 @@ Idempotent scripts per Part B repo layout, built on Task 3's lib:
 - `01-deploy-fleet.ts`: deploy fleet UserRegistry via the real factory (owner = vendor), deploy/obtain the shared resolver (operator holds setter roles; members none), write resulting addresses to `deployments/fleet.<chainId>.json`.
 - `02-mount.ts`: for each of vendor/shopa/shopb/scam create `support.<parent>.eth` with subregistry = fleet registry and **resolver = 0x0**.
 - `03-register.ts`: register `mia`, `kai`, `rin` in the fleet registry, owner = agent key, resolver = shared resolver, no setter roles.
-- `04-records.ts`: operator writes the default `0x00` bundle: addr(60)=`SETTLEMENT_ADDRESS` (default: operator-derived fresh address), `mount.canonical`, `mount.parents` (vendor, shopa, shopb — **not** scam), `agent-context`, `agent-endpoint[web]`.
+- `04-records.ts`: operator writes the default `0x00` bundle: addr(60)=`SETTLEMENT_ADDRESS` (default: operator-derived fresh address), `enf.canonical`, `enf.parents` (vendor, shopa, shopb — **not** scam), `agent-context`, `agent-endpoint[web]`.
 - `demo-unmount.ts <parent>`, `demo-unregister.ts <label>`, `demo-counterfeit.ts` (idempotently ensures scam mount exists), `demo-reset.ts` (remount shopb, re-register mia).
 - `setup-all.ts` runs names + 01–04 in order.
 - **Acceptance:** after `setup-all`, a clean script using only stock viem `getEnsAddress`/`getEnsText` resolves `mia.support.shopa.eth`, `mia.support.shopb.eth`, `mia.support.vendor.eth`, `mia.support.scam.eth` to the settlement address, and `nobody.support.shopa.eth` and `support.shopa.eth` return null / ResolverNotFound.
@@ -283,8 +283,8 @@ Resolution assertions go through the real UniversalResolver.
 `packages/verifier` (ESM TS, vitest) implementing Part A §A4 exactly.
 - `verify(client, name, opts?) → { input, normalized, verdict, checks: {id, pass, detail}[], resolved: { address?, canonical?, parents?[] }, doorways: DoorwayResult[] }`.
 - Registry walk reads from ENSv2 registries using `deployments/*.json` (injected, not hardcoded). Records via UniversalResolver (viem).
-- C1 member token alive; C2 doorway registry == canonical registry; C3 doorway parent ∈ `mount.parents`; C4 parent not expired; C5 via optional injected `screen(address)` (absent → C5 omitted, not failed).
-- `doorways`: for each name in `mount.parents` plus the typed parent, verdict for `<label>.<parent>`.
+- C1 member token alive; C2 doorway registry == canonical registry; C3 doorway parent ∈ `enf.parents`; C4 parent not expired; C5 via optional injected `screen(address)` (absent → C5 omitted, not failed).
+- `doorways`: for each name in `enf.parents` plus the typed parent, verdict for `<label>.<parent>`.
 - Vitest integration tests against the fork (skip with a clear message if `RPC_URL` unreachable) for: green (shopa), red (scam), black (nobody.support.shopa.eth, support.shopa.eth), black after unmount (shopb), black-everywhere after unregister. Unit tests for pure logic (verdict aggregation) with no network.
 - `scripts/verify.ts <name>` CLI printing a table.
 - **Acceptance:** `npm test -w packages/verifier` green with anvil fork + `setup-all` done.
@@ -306,5 +306,5 @@ Resolution assertions go through the real UniversalResolver.
 
 ### Task 9: README and Curvegrid section
 
-- `README.md`: pitch, architecture diagram (A2), demo runbook (fork + live Sepolia steps, exact commands), truth table, "Why it's new", known limitations (counterfeit mounts detectable, not preventable), ENS correctness notes, and a "MOUNT for AI agents" section for Curvegrid (agents as namespaces, ENSIP-26 discovery via default bundle, hire/fire with one tx). Contract addresses table sourced from `deployments/`.
+- `README.md`: pitch, architecture diagram (A2), demo runbook (fork + live Sepolia steps, exact commands), truth table, "Why it's new", known limitations (counterfeit mounts detectable, not preventable), ENS correctness notes, and a "ENF for AI agents" section for Curvegrid (agents as namespaces, ENSIP-26 discovery via default bundle, hire/fire with one tx). Contract addresses table sourced from `deployments/`.
 - **Acceptance:** every command in the runbook was executed at least once in this task and works as written.

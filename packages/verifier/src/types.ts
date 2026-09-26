@@ -39,9 +39,9 @@ export type Membership = {
 export type Resolved = {
   /** addr(60) — the fleet settlement address. */
   address?: Address;
-  /** text(mount.canonical), normalized. */
+  /** text(enf.canonical), normalized. */
   canonical?: string;
-  /** text(mount.parents), split on commas, trimmed, normalized. */
+  /** text(enf.parents), split on commas, trimmed, normalized. */
   parents?: string[];
   /** ENSIP-26 text(agent-context). */
   agentContext?: string;
@@ -52,7 +52,7 @@ export type Resolved = {
 export type Registries = {
   /** R_doorway = subregistry of the typed parent (e.g. support.shopa.eth), found by walking from the RootRegistry. */
   doorway: Address | null;
-  /** R_canonical = UniversalHelper.findExactRegistry(mount.canonical). */
+  /** R_canonical = UniversalHelper.findExactRegistry(enf.canonical). */
   canonical: Address | null;
   /** UniversalHelper.findCanonicalName(R_doorway), decoded (null if none). */
   canonicalNameOfDoorway: string | null;
@@ -87,10 +87,10 @@ export type DoorwayResult = VerifyCore & {
 };
 
 export type VerifyResult = VerifyCore & {
-  /** For each name in mount.parents plus the typed parent (deduped): the verdict for `<label>.<parent>`. */
+  /** For each name in enf.parents plus the typed parent (deduped): the verdict for `<label>.<parent>`. */
   doorways: DoorwayResult[];
   /**
-   * Parent names from mount.parents NOT verified because of the fan-out cap (MAX_DOORWAYS = 16, typed parent
+   * Parent names from enf.parents NOT verified because of the fan-out cap (MAX_DOORWAYS = 16, typed parent
    * always kept). Usually empty.
    */
   doorwaysSkipped: string[];

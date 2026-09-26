@@ -1,9 +1,9 @@
-# MOUNT contracts
+# ENF contracts
 
 Foundry project holding `contracts/test/Mount.t.sol`: fork tests against the real, deployed
 ENSv2 contracts on Sepolia (no mocks — see `../docs/ensv2-notes.md` for the pinned addresses and
-`../deployments/sepolia.json` for the machine-readable copy). There is no MOUNT Solidity source of
-its own; MOUNT composes stock ENSv2 registries and resolvers from scripts (`../scripts/`) and a
+`../deployments/sepolia.json` for the machine-readable copy). There is no ENF Solidity source of
+its own; ENF composes stock ENSv2 registries and resolvers from scripts (`../scripts/`) and a
 TypeScript verifier (`../packages/verifier/`).
 
 ## Test

@@ -1,4 +1,4 @@
-// packages/verifier/src/screen — counterparty screening adapters for check C5 ("@mount/verifier/screen").
+// packages/verifier/src/screen — counterparty screening adapters for check C5 ("@enf/verifier/screen").
 //
 // The verifier core only knows the injected `Screen` interface; everything sponsor-specific lives here.
 // screenFromEnv picks, from environment variables (server side only — never ship INTERCEPTA_API_KEY to a browser):

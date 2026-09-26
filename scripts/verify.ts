@@ -1,20 +1,20 @@
 // scripts/verify.ts <name> [--json]
 //
-// Runs the MOUNT verifier (@mount/verifier) against RPC_URL and prints the
+// Runs the ENF verifier (@enf/verifier) against RPC_URL and prints the
 // verdict, per-check reasons and the state of every sibling doorway.
 //
 //   npx tsx scripts/verify.ts mia.support.shopa.eth
 //   npx tsx scripts/verify.ts mia.support.scam.eth --json
 //
-// C5 screening comes from screenFromEnvFile (@mount/verifier/screen/node — the same resolver the
+// C5 screening comes from screenFromEnvFile (@enf/verifier/screen/node — the same resolver the
 // app's /api/verify uses), reading INTERCEPTA_API_KEY and/or SCREEN_FLAGGED from env / .env.local;
 // with neither set, C5 is omitted.
 
 import { resolve } from "node:path";
 import { createPublicClient, http } from "viem";
-import { type VerifyCore, verify } from "@mount/verifier";
-import { loadDeployment } from "@mount/verifier/node";
-import { screenFromEnvFile } from "@mount/verifier/screen/node";
+import { type VerifyCore, verify } from "@enf/verifier";
+import { loadDeployment } from "@enf/verifier/node";
+import { screenFromEnvFile } from "@enf/verifier/screen/node";
 import { ENV_LOCAL_PATH, REPO_ROOT, RPC_URL } from "./lib/env.js";
 
 const ICON: Record<string, string> = { green: "GREEN ", red: "RED   ", orange: "ORANGE", black: "BLACK " };
@@ -30,7 +30,7 @@ async function main() {
   const deployment = loadDeployment(resolve(REPO_ROOT, "deployments", "sepolia.json"));
   const client = createPublicClient({ transport: http(RPC_URL) });
   const t0 = performance.now();
-  // Shared with the app's /api/verify (@mount/verifier/screen/node) so the CLI and the app
+  // Shared with the app's /api/verify (@enf/verifier/screen/node) so the CLI and the app
   // always agree: process.env wins for scalar keys, SCREEN_FLAGGED is the union of both.
   const screening = screenFromEnvFile(process.env, ENV_LOCAL_PATH);
   const r = await verify(client, name, { deployment, screen: screening.screen });
@@ -50,8 +50,8 @@ async function main() {
   printChecks(r);
   console.log("\nresolved");
   console.log(`  addr(60)             ${r.resolved.address ?? "-"}`);
-  console.log(`  mount.canonical      ${r.resolved.canonical ?? "-"}`);
-  console.log(`  mount.parents        ${r.resolved.parents?.join(", ") ?? "-"}`);
+  console.log(`  enf.canonical      ${r.resolved.canonical ?? "-"}`);
+  console.log(`  enf.parents        ${r.resolved.parents?.join(", ") ?? "-"}`);
   console.log(`  agent-context        ${r.resolved.agentContext ?? "-"}`);
   console.log(`  agent-endpoint[web]  ${r.resolved.agentEndpointWeb ?? "-"}`);
   console.log(`  R_doorway            ${r.registries.doorway ?? "-"}`);

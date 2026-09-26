@@ -1,7 +1,7 @@
 // packages/verifier/src/screen/static-list.ts — demo/offline counterparty screen.
 //
 // Flags exactly the addresses listed in SCREEN_FLAGGED (comma / whitespace separated).
-// Used for the MOUNT demo on a Sepolia fork (Intercepta's data covers mainnets, not a
+// Used for the ENF demo on a Sepolia fork (Intercepta's data covers mainnets, not a
 // freshly derived test address), and as a local deny-list overlay on top of Intercepta.
 
 import { type Address, getAddress, isAddress } from "viem";

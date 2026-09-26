@@ -1,4 +1,6 @@
-# MOUNT — hire a fleet with one transaction, fire it with one
+# ENF — Ethereum Naming Fleet
+
+**Hire a fleet with one transaction, fire it with one.**
 
 **Primary track:** ENS · Best Use of ENSv2
 **Secondary (gated):** Intercepta — address screening on the fleet's settlement address
@@ -37,10 +39,10 @@ for the build log.
                      default record (DNS name 0x00), read by every member
                      without its own record:
                        addr(60)             = fleet settlement address
-                       mount.canonical      = support.vendor.eth
-                       mount.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth
-                       agent-context        = https://mount.example/fleet        (placeholder)
-                       agent-endpoint[web]  = https://mount.example/fleet/chat   (placeholder)
+                       enf.canonical      = support.vendor.eth
+                       enf.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth
+                       agent-context        = https://enf.example/fleet        (placeholder)
+                       agent-endpoint[web]  = https://enf.example/fleet/chat   (placeholder)
 ```
 
 `mia.support.shopa.eth`, `mia.support.shopb.eth` and `mia.support.vendor.eth` are the same
@@ -61,7 +63,7 @@ resolver, which would have falsified the whole demo the moment a judge typed a m
 |---|---|
 | `deployments/sepolia.json` + `deployments/abis/*.json` | Pinned ENSv2 contract addresses/ABIs on Sepolia (Task 2). All app/verifier/script code reads addresses from here — nothing is hardcoded. |
 | `scripts/` | Setup and demo scripts (TypeScript, `tsx`, viem). Actor keys and RPC config in `.env.local`. |
-| `packages/verifier/` | `@mount/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
+| `packages/verifier/` | `@enf/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
 | `app/` | Next.js single-screen verifier UI (`app/src/app/page.tsx`) plus two server routes (`/api/verify`, `/api/block`). |
 | `contracts/` | Foundry fork tests (`contracts/test/Mount.t.sol`) exercising the real deployed ENSv2 contracts — no mocks. |
 | `docs/ensv2-notes.md` | Pinned ENSv2 deployment research: addresses, `getState` field order, role bit layout, resolution semantics — all VERIFIED-ONCHAIN or VERIFIED-SOURCE against the live deployment. |
@@ -76,22 +78,22 @@ Input: any name `L.support.P` typed by a user (e.g. `mia.support.shopa.eth`).
 ```
 1. n = normalize(input)                                        // ENSIP-15, viem's normalize — never toLowerCase, never gated on ".eth"
 2. resolve via the real UniversalResolver (stock viem path):
-     addr(60), text(mount.canonical), text(mount.parents), agent-context, agent-endpoint[web]
+     addr(60), text(enf.canonical), text(enf.parents), agent-context, agent-endpoint[web]
    -> UR.findResolver has no resolver at the leaf  =>  BLACK, not a member (true negative)
 3. walk registries down from the RootRegistry:
      parentRegistry(P).getSubregistry("support") = R_doorway
-     R_canonical = UniversalHelper.findExactRegistry(mount.canonical)
+     R_canonical = UniversalHelper.findExactRegistry(enf.canonical)
 4. checks
      C1  member token alive in R_doorway for label L, not expired
      C2  R_doorway == R_canonical                                  (canonical registry match)
-     C3  normalize(P's own name) is in mount.parents                (two-sided consent)
+     C3  normalize(P's own name) is in enf.parents                (two-sided consent)
      C4  the parent name (P and support.P) is not expired           (doorway alive)
      C5  [Intercepta, gated] screen(addr(60))                       (party clean) — omitted if no screen injected
 5. verdict
      C1 or C4 fail                 -> BLACK  not a member
      resolves, but C2 or C3 fails  -> RED    counterfeit mount
      C5 flags                      -> ORANGE endorsed doorway, flagged counterparty
-     everything passes             -> GREEN  mounted by P (canonical mount.canonical)
+     everything passes             -> GREEN  mounted by P (canonical enf.canonical)
 ```
 
 Verdict precedence is **black > red > orange > green**; C5 "unknown" (screening outage) never
@@ -109,7 +111,7 @@ unavailable rather than showing a clean bill of health.
 
 **Correction vs. the original pitch (`idea.md`):** the counterfeit mount of the *real* fleet
 registry under `support.scam.eth` is caught by **C3, two-sided consent** —
-`support.scam.eth` is not in the fleet's own `mount.parents` record. **C2 (canonical registry)
+`support.scam.eth` is not in the fleet's own `enf.parents` record. **C2 (canonical registry)
 passes by construction** for this attack, because `scam.eth`'s "support" subregistry really is
 the same fleet registry as the legitimate mounts; C2 exists to catch a *copied or forked*
 registry pretending to be canonical, not this one. The pitch's demo row ("canonical registry
@@ -134,7 +136,7 @@ mismatch") was inaccurate for this scenario and has been corrected in `idea.md` 
 There is **no dedicated UserRegistry factory** — both the fleet's `UserRegistry` and the shared
 `PermissionedResolver` are deployed as proxies through ENSv2's generic
 `VerifiableFactory.deployProxy(implementation, salt, initData)` (`deployments/sepolia.json` →
-`VerifiableFactory`). This matches ENS's own deployment tooling; MOUNT did not need to write or
+`VerifiableFactory`). This matches ENS's own deployment tooling; ENF did not need to write or
 deploy any Solidity of its own.
 
 ---
@@ -142,17 +144,17 @@ deploy any Solidity of its own.
 ## 4. Contract addresses (Sepolia, pinned in `deployments/sepolia.json`)
 
 Source of truth: `docs/ensv2-notes.md` §1 (bytecode-verified against the live chain,
-2026-09-26). These are the real, deployed ENSv2 contracts — MOUNT uses no mocks and no custom
+2026-09-26). These are the real, deployed ENSv2 contracts — ENF uses no mocks and no custom
 registry/resolver code.
 
-| Name | Address | Role in MOUNT |
+| Name | Address | Role in ENF |
 |---|---|---|
 | RootRegistry | [`0x9703DBD26dAB89504490994138cF2c575251a9cE`](https://sepolia.etherscan.io/address/0x9703DBD26dAB89504490994138cF2c575251a9cE) | Root of the v2 tree |
 | ETHRegistry | [`0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E`](https://sepolia.etherscan.io/address/0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E) | `.eth` registry — `vendor`/`shopa`/`shopb`/`scam` live here |
 | ETHRegistrar | [`0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca`](https://sepolia.etherscan.io/address/0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca) | Commit/reveal `.eth` registrar |
 | UserRegistryImpl | [`0xA80338aAA8D23831cEa25E858D1774534aBb0263`](https://sepolia.etherscan.io/address/0xA80338aAA8D23831cEa25E858D1774534aBb0263) | Implementation behind the fleet's + each parent's `UserRegistry` proxy |
 | PermissionedResolverImpl | [`0x14F09Fd05d4585759e54844DC9B00147131Cf243`](https://sepolia.etherscan.io/address/0x14F09Fd05d4585759e54844DC9B00147131Cf243) | Implementation behind the shared resolver proxy |
-| VerifiableFactory | [`0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C`](https://sepolia.etherscan.io/address/0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C) | Deploys both proxies above (`deployProxy`) — no dedicated MOUNT/UserRegistry factory exists |
+| VerifiableFactory | [`0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C`](https://sepolia.etherscan.io/address/0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C) | Deploys both proxies above (`deployProxy`) — no dedicated ENF/UserRegistry factory exists |
 | UniversalResolverV2 | [`0x5d25C1D6aCBb71B7a28AA7899618a3412a8303e3`](https://sepolia.etherscan.io/address/0x5d25C1D6aCBb71B7a28AA7899618a3412a8303e3) | v2 UniversalResolver implementation |
 | ManagedUniversalResolverProxy | [`0x6d80F2172CFdEc5730fE683860C33d26fC42e6F1`](https://sepolia.etherscan.io/address/0x6d80F2172CFdEc5730fE683860C33d26fC42e6F1) | Proxy pointing at UniversalResolverV2; itself pointed at by the Upgradable proxy below |
 | UpgradableUniversalResolverProxy | [`0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe`](https://sepolia.etherscan.io/address/0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe) | viem's built-in Sepolia UR address — the stock resolution path the verifier and any wallet use |
@@ -161,7 +163,7 @@ registry/resolver code.
 | StandardRentPriceOracle | [`0x9B0b9C65BDAf9794Ff7697E4dCFb1f50581072BB`](https://sepolia.etherscan.io/address/0x9B0b9C65BDAf9794Ff7697E4dCFb1f50581072BB) | `.eth` registrar pricing |
 | MockUSDC | [`0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e`](https://sepolia.etherscan.io/address/0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e) | Payment token accepted by ETHRegistrar (6 dp, permissionless `mint`) |
 
-MOUNT's own fleet registry, shared resolver, and per-parent (`vendor`/`shopa`/`shopb`/`scam`)
+ENF's own fleet registry, shared resolver, and per-parent (`vendor`/`shopa`/`shopb`/`scam`)
 `UserRegistry` addresses are **not** fixed — they are deployed fresh by `scripts/01-deploy-fleet.ts`
 and `scripts/02-mount.ts` each time the world is set up, and recorded in
 `deployments/fleet.anvil.json` (fork; gitignored) or `deployments/fleet.11155111.json` (live
@@ -175,9 +177,9 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   ENS and, as far as this project found, built by nobody: of ~25 non-ENS repos calling
   `setSubregistry`, every one was single-mount.
 - `linkToNode` / `linkToRecord`: verified available/present in `ensjs`'s own source during
-  research for this project — MOUNT does not call either (the shared resolver's default (`0x00`)
-  record does the aliasing work MOUNT needs); listed here only because they were part of the
-  registry-linking primitives investigated, not because MOUNT uses them.
+  research for this project — ENF does not call either (the shared resolver's default (`0x00`)
+  record does the aliasing work ENF needs); listed here only because they were part of the
+  registry-linking primitives investigated, not because ENF uses them.
 - Default-record (`0x00`) usage outside the ENS contracts themselves: zero hits found.
 - ENSv1 cannot express any of this — one node has exactly one owner and one resolver, so there is
   no way to alias one identity into three names without three separate registrations to keep in
@@ -190,29 +192,29 @@ Sepolia; produced only after a live run — not yet performed, see §7).
 - **Counterfeit mounts are detectable, not preventable.** Nothing on-chain stops `scam.eth` from
   deploying its own `UserRegistry`, registering `support`, and pointing it at the *same* fleet
   registry — mounting is a permissionless action any `.eth` owner can take on their own name.
-  MOUNT's answer is two-sided consent (C3): the mount only counts if the fleet's own
-  `mount.parents` record also lists that parent. A verifier that skips C3 (or a wallet that only
+  ENF's answer is two-sided consent (C3): the mount only counts if the fleet's own
+  `enf.parents` record also lists that parent. A verifier that skips C3 (or a wallet that only
   checks "does this resolve") is fooled. This is the centerpiece of the demo, not a bug found
   late.
 - **The default-record bundle is shared by every member without an override.** A member-scoped
   resolver setter role would let that member rewrite the bundle for *everyone* (verified in
-  `contracts/test/Mount.t.sol:test_scopedMemberRoleWouldRewriteEveryone`) — MOUNT never grants
+  `contracts/test/Mount.t.sol:test_scopedMemberRoleWouldRewriteEveryone`) — ENF never grants
   setter roles to members, only to the operator key.
 - **Intercepta screening only covers the settlement address, and only when configured.** No API
   key has been exercised end-to-end against a real "flagged" mainnet-style verdict (see §8); the
-  flag threshold is MOUNT's own choice, not Intercepta's; and Intercepta's documented chain list
+  flag threshold is ENF's own choice, not Intercepta's; and Intercepta's documented chain list
   is mainnets only, so its verdict for a fresh Sepolia address is unknown behaviour, not
   necessarily "clean."
-- **`agent-context` / `agent-endpoint[web]` are placeholder URLs** (`https://mount.example/...`) —
+- **`agent-context` / `agent-endpoint[web]` are placeholder URLs** (`https://enf.example/...`) —
   no real agent-serving endpoint exists behind them.
 - **`ensureParentRegistry` sets the merchant's own `<parent>.eth` resolver to `0x0`.** Per the
   topology in §1, this is deliberate — an inherited wildcard resolver on `<parent>.eth` is exactly
   what would let a non-member (`bob.support.shopa.eth`) or the bare `support.shopa.eth` node
   resolve, defeating the black/non-member verdict. The tradeoff: the merchant's own `<parent>.eth`
   (e.g. `shopa.eth` itself, not `support.shopa.eth`) loses whatever site/address resolution it had
-  before adopting MOUNT, unless the merchant sets its own resolver back on that name separately. A
+  before adopting ENF, unless the merchant sets its own resolver back on that name separately. A
   wildcard resolver on `<parent>.eth` would fix that, but would also make arbitrary non-members
-  resolve in stock ENS clients — MOUNT's verifier still returns black for them (it checks the
+  resolve in stock ENS clients — ENF's verifier still returns black for them (it checks the
   resolver at the leaf, not inherited), but any client that only checks "does this resolve" would
   be fooled, same failure mode as the counterfeit-mount case above.
 - **Live Sepolia has not been exercised** — see §7. Everything above was run and verified on an
@@ -291,7 +293,7 @@ npm run dev -w app
 | 1 | type `mia.support.shopa.eth` | GREEN — "mounted by support.shopa.eth (canonical support.vendor.eth)". [`docs/screenshots/green.png`](docs/screenshots/green.png) |
 | 2 | `npx tsx scripts/demo-unmount.ts shopb` (merchant B's own `setSubregistry`, one tx) | `mia.support.shopb.eth` -> BLACK next block ("not a member: ... ResolverNotFound"); `mia.support.shopa.eth` stays GREEN — "fired the vendor." [`docs/screenshots/unmount-flip.png`](docs/screenshots/unmount-flip.png) |
 | 3 | `npx tsx scripts/demo-unregister.ts mia` (vendor's `unregister`, one tx) | every remaining `mia.*` doorway -> BLACK in the same block (`kai.*` unaffected) — "fired one agent everywhere." |
-| 4 | type `kai.support.scam.eth` (the counterfeit mount) | **It resolves.** RED — "counterfeit mount: C3 failed" (`support.scam.eth` not in `mount.parents`; C2 passes by construction). ENS's own documented aliasing attack, caught live. [`docs/screenshots/red-counterfeit.png`](docs/screenshots/red-counterfeit.png) |
+| 4 | type `kai.support.scam.eth` (the counterfeit mount) | **It resolves.** RED — "counterfeit mount: C3 failed" (`support.scam.eth` not in `enf.parents`; C2 passes by construction). ENS's own documented aliasing attack, caught live. [`docs/screenshots/red-counterfeit.png`](docs/screenshots/red-counterfeit.png) |
 | 5 (Intercepta) | `npx tsx scripts/demo-dirty-settlement.ts` (operator's one multicall) | every endorsed doorway (vendor/shopa/shopb) -> ORANGE "endorsed doorway, flagged counterparty"; the counterfeit `scam` doorway stays RED (same address, ENS precedence). [`docs/screenshots/orange.png`](docs/screenshots/orange.png), [`docs/screenshots/red-dirty.png`](docs/screenshots/red-dirty.png) |
 | — | `npx tsx scripts/demo-clean-settlement.ts` then `npx tsx scripts/demo-reset.ts` | restores the clean settlement address and remounts/re-registers everything touched by beats 2–3 |
 
@@ -342,16 +344,16 @@ yourself), the same way it already does for the C5 screening keys — so pointin
 
 ---
 
-## 8. MOUNT for AI agents (Curvegrid)
+## 8. ENF for AI agents (Curvegrid)
 
-MOUNT's structure maps directly onto "agents as namespaces":
+ENF's structure maps directly onto "agents as namespaces":
 
 - **An agent is a name, not a database row.** `mia`, `kai`, `rin` each exist as one ERC-1155
   token in the fleet's `UserRegistry`. Any name resolving to that token — under any merchant
   that has mounted the fleet — is the same on-chain identity, discoverable by any ENS client,
   with no custom API to integrate against.
 - **Discovery keys are served from the default record bundle**, using the ENSIP-26 text keys
-  `agent-context` and `agent-endpoint[web]` (currently placeholder `https://mount.example/...`
+  `agent-context` and `agent-endpoint[web]` (currently placeholder `https://enf.example/...`
   URLs — see §6). Because these live in the shared resolver's default (`0x00`) record, every
   member gets them with **zero per-member writes**: the operator sets the bundle once, and it
   applies to every doorway of every agent.
@@ -366,8 +368,8 @@ MOUNT's structure maps directly onto "agents as namespaces":
   autonomous buyer can gate a payment on the verdict.
 
 **Honest scope note:** this is architecture, not an integration — there is no Curvegrid SDK call
-anywhere in this repo, and no live Curvegrid runtime was used to drive an agent through MOUNT.
-The claim here is that MOUNT's namespace-aliasing primitive is a good substrate for
+anywhere in this repo, and no live Curvegrid runtime was used to drive an agent through ENF.
+The claim here is that ENF's namespace-aliasing primitive is a good substrate for
 Curvegrid-style agent fleets, verifiable with stock tooling; wiring an actual Curvegrid agent up
 to call `scripts/verify.ts` or `/api/verify` before transacting is the natural next step, not
 something this submission has built.
@@ -398,8 +400,8 @@ Full detail in [`docs/intercepta.md`](docs/intercepta.md). Summary:
   (https://docs.web3antivirus.io/reference/api-overview): `GET
   /api/public/v2/extension/account/{address}/quick-scan`, header `X-API-KEY`, response
   `{ toxicScore, traits: [{ risk, name, ... }] }`.
-- MOUNT flags an address when `toxicScore >= 50` or any trait's `risk >= 50`. **This threshold
-  (50) is MOUNT's own choice** — Intercepta's docs do not define a clean/flagged cutoff.
+- ENF flags an address when `toxicScore >= 50` or any trait's `risk >= 50`. **This threshold
+  (50) is ENF's own choice** — Intercepta's docs do not define a clean/flagged cutoff.
 - No real "flagged" 200 response has been observed against a live key (none was available during
   the build); the adapter's shape comes from the documented OpenAPI schema and was verified
   against mocked responses plus one live 403 (bad-key) response.

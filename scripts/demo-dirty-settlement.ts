@@ -6,7 +6,7 @@
 // (mia/kai/rin under vendor, shopa, shopb) turns ORANGE at once; the counterfeit scam
 // doorway stays RED (ENS precedence).
 //
-// The dirty address is derived from OPERATOR_PK (tag "mount.dirty-settlement.v1") and
+// The dirty address is derived from OPERATOR_PK (tag "enf.dirty-settlement.v1") and
 // written to .env.local as DIRTY_SETTLEMENT_ADDRESS and into SCREEN_FLAGGED (the
 // static-list screen used on the fork). Idempotent: no tx if already dirty.
 //

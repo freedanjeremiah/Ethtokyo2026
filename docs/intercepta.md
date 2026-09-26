@@ -1,6 +1,6 @@
 # Intercepta screening (check C5)
 
-MOUNT asks two orthogonal questions about `<agent>.support.<parent>.eth`:
+ENF asks two orthogonal questions about `<agent>.support.<parent>.eth`:
 
 1. **Is this doorway endorsed?** ENS checks C1 to C4 (green / red / black).
 2. **Is the party behind it clean?** C5: the fleet's settlement address, `addr(60)` from the shared default record, is screened. If it is flagged, the verdict is **orange** ("endorsed doorway, flagged counterparty").
@@ -25,9 +25,9 @@ The docs do **not** define a score scale, a clean/flagged threshold, rate limits
 
 ## Implementation
 
-`packages/verifier/src/screen/` (import from `@mount/verifier/screen`; the verifier core only sees the injected `Screen`):
+`packages/verifier/src/screen/` (import from `@enf/verifier/screen`; the verifier core only sees the injected `Screen`):
 
-- `intercepta.ts`: `interceptaScreen({ apiKey, baseUrl?, scan?, flagAt?, timeoutMs?, cacheTtlMs? })`. **Flagged** when `toxicScore >= flagAt` or any trait `risk >= flagAt` (default 50: MOUNT's choice, not Intercepta's). Any timeout, network error, non-200 (incl. 403/404/429) or unexpected body means **unknown**, never clean and never a throw. Clean and flagged answers are cached per address for `cacheTtlMs` (60 s); unknown is not cached.
+- `intercepta.ts`: `interceptaScreen({ apiKey, baseUrl?, scan?, flagAt?, timeoutMs?, cacheTtlMs? })`. **Flagged** when `toxicScore >= flagAt` or any trait `risk >= flagAt` (default 50: ENF's choice, not Intercepta's). Any timeout, network error, non-200 (incl. 403/404/429) or unexpected body means **unknown**, never clean and never a throw. Clean and flagged answers are cached per address for `cacheTtlMs` (60 s); unknown is not cached.
 - `static-list.ts`: flags exactly the addresses in `SCREEN_FLAGGED`, everything else is clean.
 - `index.ts`: `screenFromEnv(env)` returns `{ screen, source, description }`:
   - `INTERCEPTA_API_KEY` set: Intercepta. If `SCREEN_FLAGGED` is also set, it is a local deny-list checked first (listed means flagged without an API call; everything else goes to Intercepta). This lets the scripted demo work even with a real key.
@@ -42,7 +42,7 @@ UI: flagged gives an ORANGE card plus the line "Endorsed doorway, flagged counte
 
 ```
 npx tsx scripts/demo-dirty-settlement.ts   # operator: ONE multicall sets default addr(60) = DIRTY_SETTLEMENT_ADDRESS
-                                           # (derived: keccak256(OPERATOR_PK || "mount.dirty-settlement.v1")),
+                                           # (derived: keccak256(OPERATOR_PK || "enf.dirty-settlement.v1")),
                                            # and appends it to SCREEN_FLAGGED in .env.local
 # every endorsed doorway of every member is ORANGE; mia.support.scam.eth stays RED
 npx tsx scripts/demo-clean-settlement.ts   # operator: restores SETTLEMENT_ADDRESS (demo-reset.ts does this too)

@@ -1,6 +1,6 @@
 // scripts/lib/fleet.ts
 //
-// Shared building blocks for MOUNT's fleet setup scripts (01..04, demo-*).
+// Shared building blocks for ENF's fleet setup scripts (01..04, demo-*).
 // Everything here is idempotent: each `ensure*` function reads chain state
 // first and only sends the transactions needed to reach the target state.
 //
@@ -70,7 +70,7 @@ export const PARENTS: Parent[] = [
   { label: "vendor", actor: "VENDOR", endorsed: true },
   { label: "shopa", actor: "SHOPA", endorsed: true },
   { label: "shopb", actor: "SHOPB", endorsed: true },
-  { label: "scam", actor: "SCAM", endorsed: false }, // counterfeit mount: not in mount.parents
+  { label: "scam", actor: "SCAM", endorsed: false }, // counterfeit mount: not in enf.parents
 ];
 
 export type Member = { label: string; actor: ActorLabel };
@@ -85,13 +85,13 @@ export const ENTRY_DURATION_SECONDS = 365n * 24n * 60n * 60n;
 
 // Factory salts (CREATE2 salt = keccak256(abi.encode(msg.sender, salt)), so
 // these only need to be unique per deployer).
-export const SALT_FLEET = BigInt(keccak256(stringToHex("mount.fleet-registry.v1")));
-export const SALT_RESOLVER = BigInt(keccak256(stringToHex("mount.shared-resolver.v1")));
-export const SALT_PARENT_REGISTRY = BigInt(keccak256(stringToHex("mount.parent-registry.v1")));
+export const SALT_FLEET = BigInt(keccak256(stringToHex("enf.fleet-registry.v1")));
+export const SALT_RESOLVER = BigInt(keccak256(stringToHex("enf.shared-resolver.v1")));
+export const SALT_PARENT_REGISTRY = BigInt(keccak256(stringToHex("enf.parent-registry.v1")));
 
 // Placeholder URLs (not live services) for the ENSIP-26 agent records.
-export const AGENT_CONTEXT_URL = "https://mount.example/fleet";
-export const AGENT_ENDPOINT_WEB_URL = "https://mount.example/fleet/chat";
+export const AGENT_CONTEXT_URL = "https://enf.example/fleet";
+export const AGENT_ENDPOINT_WEB_URL = "https://enf.example/fleet/chat";
 
 export function parentByLabel(label: string): Parent {
   const n = normalize(label);
@@ -462,11 +462,11 @@ export async function ensureMember(member: Member, fleet: Address, sharedResolve
 // ---------------------------------------------------------------- records
 
 /** Domain separator for deriving the default settlement key from the operator key. */
-export const SETTLEMENT_DERIVATION_TAG = "mount.settlement.v1";
+export const SETTLEMENT_DERIVATION_TAG = "enf.settlement.v1";
 
 /**
  * Default settlement key, derived deterministically from the operator key:
- * keccak256(OPERATOR_PK || "mount.settlement.v1"). Losing .env.local therefore
+ * keccak256(OPERATOR_PK || "enf.settlement.v1"). Losing .env.local therefore
  * never changes addr(60), and the key (hence any funds) is always recoverable
  * from OPERATOR_PK.
  */
@@ -517,8 +517,8 @@ export function rosterRecords(settlement: Address): RosterRecords {
   return {
     settlement,
     texts: {
-      "mount.canonical": CANONICAL_NAME,
-      "mount.parents": ENDORSED_PARENTS_RECORD,
+      "enf.canonical": CANONICAL_NAME,
+      "enf.parents": ENDORSED_PARENTS_RECORD,
       "agent-context": AGENT_CONTEXT_URL,
       "agent-endpoint[web]": AGENT_ENDPOINT_WEB_URL,
     },
@@ -557,11 +557,11 @@ export async function ensureDefaultRecords(sharedResolver: Address, want: Roster
 // ---------------------------------------------------------------- screening demo (Task 8)
 
 /** Domain separator for the demo's "dirty" settlement address (never funded, never used to sign). */
-export const DIRTY_SETTLEMENT_DERIVATION_TAG = "mount.dirty-settlement.v1";
+export const DIRTY_SETTLEMENT_DERIVATION_TAG = "enf.dirty-settlement.v1";
 
 /**
  * The demo's flagged settlement address, derived deterministically from the operator key:
- * address(keccak256(OPERATOR_PK || "mount.dirty-settlement.v1")). Also makes sure .env.local has
+ * address(keccak256(OPERATOR_PK || "enf.dirty-settlement.v1")). Also makes sure .env.local has
  * DIRTY_SETTLEMENT_ADDRESS and that SCREEN_FLAGGED contains it (other entries are kept), so the
  * static-list screen (packages/verifier/src/screen) flags it.
  */

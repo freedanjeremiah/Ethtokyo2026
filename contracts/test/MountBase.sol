@@ -11,7 +11,7 @@ import {IETHRegistrar} from "../src/interfaces/IETHRegistrar.sol";
 import {IUniversalResolver, IUniversalHelper, IRecordProfiles} from "../src/interfaces/IUniversalResolver.sol";
 import {IMockUSDC} from "../src/interfaces/IMockUSDC.sol";
 
-/// @title MountBase — builds the MOUNT world on a pinned Sepolia fork, against the REAL ENSv2 contracts.
+/// @title MountBase — builds the ENF world on a pinned Sepolia fork, against the REAL ENSv2 contracts.
 ///
 /// Topology (identical to scripts/lib/fleet.ts, docs/ensv2-notes.md §3):
 ///
@@ -42,8 +42,8 @@ abstract contract MountBase is Test {
     string internal constant MOUNT_LABEL = "support";
     string internal constant CANONICAL_NAME = "support.vendor.eth";
     string internal constant ENDORSED_PARENTS = "support.vendor.eth,support.shopa.eth,support.shopb.eth";
-    string internal constant AGENT_CONTEXT_URL = "https://mount.example/fleet";
-    string internal constant AGENT_ENDPOINT_WEB_URL = "https://mount.example/fleet/chat";
+    string internal constant AGENT_CONTEXT_URL = "https://enf.example/fleet";
+    string internal constant AGENT_ENDPOINT_WEB_URL = "https://enf.example/fleet/chat";
     uint64 internal constant ONE_YEAR = 365 days;
     uint256 internal constant COIN_TYPE_ETH = 60;
 
@@ -99,12 +99,12 @@ abstract contract MountBase is Test {
 
         // 2. Fleet UserRegistry (vendor holds all root roles) + shared PermissionedResolver (operator holds all roles),
         //    both proxies from the real VerifiableFactory.
-        fleet = IPermissionedRegistry(_deployUserRegistry(vendor, "mount.fleet-registry.v1"));
+        fleet = IPermissionedRegistry(_deployUserRegistry(vendor, "enf.fleet-registry.v1"));
         vm.prank(operator);
         sharedResolver = IPermissionedResolver(
             factory.deployProxy(
                 permissionedResolverImpl,
-                _salt("mount.shared-resolver.v1"),
+                _salt("enf.shared-resolver.v1"),
                 abi.encodeCall(IPermissionedResolver.initialize, (_grants(operator), new bytes[](0)))
             )
         );
@@ -127,8 +127,8 @@ abstract contract MountBase is Test {
         bytes[] memory calls = new bytes[](5);
         calls[0] =
             abi.encodeCall(IPermissionedResolver.setAddress, (hex"00", COIN_TYPE_ETH, abi.encodePacked(settlement)));
-        calls[1] = abi.encodeCall(IPermissionedResolver.setText, (hex"00", "mount.canonical", CANONICAL_NAME));
-        calls[2] = abi.encodeCall(IPermissionedResolver.setText, (hex"00", "mount.parents", ENDORSED_PARENTS));
+        calls[1] = abi.encodeCall(IPermissionedResolver.setText, (hex"00", "enf.canonical", CANONICAL_NAME));
+        calls[2] = abi.encodeCall(IPermissionedResolver.setText, (hex"00", "enf.parents", ENDORSED_PARENTS));
         calls[3] = abi.encodeCall(IPermissionedResolver.setText, (hex"00", "agent-context", AGENT_CONTEXT_URL));
         calls[4] =
             abi.encodeCall(IPermissionedResolver.setText, (hex"00", "agent-endpoint[web]", AGENT_ENDPOINT_WEB_URL));
@@ -158,7 +158,7 @@ abstract contract MountBase is Test {
 
     /// Step 1 of the real registrar flow (same as scripts/lib/names.ts): subregistry 0, resolver 0, referrer 0.
     function _commitEth(string memory label, address owner, uint64 duration) internal returns (bytes32 secret) {
-        secret = keccak256(abi.encode("mount.secret", label, owner));
+        secret = keccak256(abi.encode("enf.secret", label, owner));
         bytes32 commitment =
             registrar.makeCommitment(label, owner, secret, address(0), address(0), duration, bytes32(0));
         vm.prank(owner);
@@ -193,7 +193,7 @@ abstract contract MountBase is Test {
 
     /// `<label>.eth` -> its own UserRegistry; the .eth name keeps resolver 0x0.
     function _setupParentRegistry(string memory label, address owner) internal {
-        IPermissionedRegistry reg = IPermissionedRegistry(_deployUserRegistry(owner, "mount.parent-registry.v1"));
+        IPermissionedRegistry reg = IPermissionedRegistry(_deployUserRegistry(owner, "enf.parent-registry.v1"));
         parentRegistry[label] = reg;
         vm.prank(owner);
         ethRegistry.setSubregistry(labelId(label), address(reg));
@@ -310,8 +310,8 @@ abstract contract MountBase is Test {
         assertEq(a, settlement, string.concat(name, ": addr(60) != settlement"));
         assertEq(viaA, address(sharedResolver), string.concat(name, ": addr served by wrong resolver"));
 
-        (string memory canonical, address viaT) = urText(name, "mount.canonical");
-        assertEq(canonical, CANONICAL_NAME, string.concat(name, ": mount.canonical"));
+        (string memory canonical, address viaT) = urText(name, "enf.canonical");
+        assertEq(canonical, CANONICAL_NAME, string.concat(name, ": enf.canonical"));
         assertEq(viaT, address(sharedResolver), string.concat(name, ": text served by wrong resolver"));
     }
 
@@ -325,7 +325,7 @@ abstract contract MountBase is Test {
         vm.expectRevert(abi.encodeWithSelector(IUniversalResolver.ResolverNotFound.selector, d));
         ur.requireResolver(d);
 
-        bytes memory call = abi.encodeCall(IRecordProfiles.text, (namehash(d), "mount.canonical"));
+        bytes memory call = abi.encodeCall(IRecordProfiles.text, (namehash(d), "enf.canonical"));
         vm.expectRevert(abi.encodeWithSelector(IUniversalResolver.ResolverNotFound.selector, d));
         ur.resolve(d, call);
     }

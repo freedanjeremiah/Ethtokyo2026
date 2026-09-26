@@ -2,7 +2,7 @@
 //
 // Idempotently ensures the counterfeit mount exists: scam.eth has its own
 // registry and support.scam.eth -> fleet (resolver 0x0). Nothing on-chain
-// prevents this; the verifier catches it (not canonical, not in mount.parents).
+// prevents this; the verifier catches it (not canonical, not in enf.parents).
 //
 //   npx tsx scripts/demo-counterfeit.ts
 

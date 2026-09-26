@@ -1,4 +1,4 @@
-# MOUNT — hire a fleet with one transaction, fire it with one
+# ENF — Ethereum Naming Fleet: hire a fleet with one transaction, fire it with one
 
 **Primary track:** ENS · Best Use of ENSv2 — $6,000 (3 / 2 / 1)
 **Secondary (gated):** Intercepta — address screening on the fleet's settlement address
@@ -51,7 +51,7 @@ One ENSv2 **UserRegistry** mounted at **several points in the namespace at once*
 | 1 | Type `mia.support.shopa.eth` | 🟢 owner, canonical registry, "mounted by shopa.eth ✓" |
 | 2 | Merchant B unmounts (1 tx) | `mia.support.shopb.eth` dead next block; shopa stays 🟢 — *"fired the vendor"* |
 | 3 | Vendor unregisters `mia` (1 tx) | every remaining doorway dies in one block — *"fired one agent everywhere"* |
-| 4 | Type `kai.support.scam.eth` (`mia` is gone everywhere after step 3, so `kai` is the member still live to demo against) | **It resolves.** Verifier flags 🔴: C3 two-sided consent fails — `support.scam.eth` is not in the roster's `mount.parents`. (C2 canonical-registry passes by construction here; it guards against a copied/forked registry, not this attack.) ENS's own documented aliasing attack, caught live. |
+| 4 | Type `kai.support.scam.eth` (`mia` is gone everywhere after step 3, so `kai` is the member still live to demo against) | **It resolves.** Verifier flags 🔴: C3 two-sided consent fails — `support.scam.eth` is not in the roster's `enf.parents`. (C2 canonical-registry passes by construction here; it guards against a copied/forked registry, not this attack.) ENS's own documented aliasing attack, caught live. |
 | 5 (Intercepta) | Operator dirties the fleet's settlement address (1 tx) | Every endorsed doorway (vendor/shopa/shopb) turns 🟠 "endorsed doorway, flagged counterparty"; `kai.support.scam.eth` stays 🔴 — same address, ENS precedence over screening. |
 
 ## 5. Pros

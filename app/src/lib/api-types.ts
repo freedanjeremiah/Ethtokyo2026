@@ -1,5 +1,5 @@
 // Shared (client + server) shape of GET /api/verify. Types only — safe to import from client components.
-import type { VerifyResult } from "@mount/verifier";
+import type { VerifyResult } from "@enf/verifier";
 
 export type ScreeningInfo = {
   /** "intercepta" | "intercepta+static-list" | "static-list" | "none" */

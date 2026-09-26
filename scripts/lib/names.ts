@@ -1,6 +1,6 @@
 // scripts/lib/names.ts
 //
-// Obtains `.eth` names for MOUNT actors via the REAL ETHRegistrar
+// Obtains `.eth` names for ENF actors via the REAL ETHRegistrar
 // commit/reveal flow (docs/ensv2-notes.md §3.1) — the same flow on an anvil
 // fork (using evm_increaseTime/evm_mine to skip the commitment wait) and on
 // live Sepolia (a real wall-clock wait). We use the real flow rather than

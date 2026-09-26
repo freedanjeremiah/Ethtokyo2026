@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MOUNT",
+  title: "ENF — Ethereum Naming Fleet",
   description: "One fleet, mounted under many .eth names — live verdict for any doorway.",
 };
 

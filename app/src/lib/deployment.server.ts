@@ -1,4 +1,4 @@
-// app/src/lib/deployment.server.ts — server-only helpers for the MOUNT verifier UI.
+// app/src/lib/deployment.server.ts — server-only helpers for the ENF verifier UI.
 //
 // Builds a VerifierDeployment from deployments/sepolia.json + deployments/abis/*.json
 // (never a static import: those files are read with fs at request time so a missing
@@ -9,10 +9,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Abi } from "viem";
-import { REQUIRED_ABIS, type RequiredAbiName, type SepoliaJson, deploymentFromJson } from "@mount/verifier";
-import type { VerifierDeployment } from "@mount/verifier";
-import type { ScreenSelection } from "@mount/verifier/screen";
-import { SCREEN_ENV_KEYS, screenFromEnvFile } from "@mount/verifier/screen/node";
+import { REQUIRED_ABIS, type RequiredAbiName, type SepoliaJson, deploymentFromJson } from "@enf/verifier";
+import type { VerifierDeployment } from "@enf/verifier";
+import type { ScreenSelection } from "@enf/verifier/screen";
+import { SCREEN_ENV_KEYS, screenFromEnvFile } from "@enf/verifier/screen/node";
 
 // app/src/lib -> app/src -> app -> repo root
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -93,7 +93,7 @@ let cachedScreening: { signature: string; selection: ScreenSelection } | null = 
 
 /**
  * Server-only screening selection, resolved by the same shared resolver scripts/verify.ts uses
- * (@mount/verifier/screen/node screenFromEnvFile) so the CLI and the app always agree on which
+ * (@enf/verifier/screen/node screenFromEnvFile) so the CLI and the app always agree on which
  * screening config is active. process.env wins for scalar keys; SCREEN_FLAGGED is the union of
  * process.env and the repo-root .env.local (where scripts/demo-dirty-settlement.ts writes it),
  * re-read on every call so the demo works without restarting the dev server. The Screen (and

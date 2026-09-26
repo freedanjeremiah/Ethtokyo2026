@@ -6,7 +6,7 @@
 //   auth: apiKey in header "X-API-KEY"
 //   200 body (ToxicScoreShortResponseV2): { toxicScore: number, traits: [{ risk: number, name: string, txsCount: number, description: string }] }
 //   a wrong key answers 403 {"status":403,"response":"This authentication key is incorrect or doesn't exist",...} (observed).
-// The docs define no clean/flagged threshold and no score scale; MOUNT flags when toxicScore or any
+// The docs define no clean/flagged threshold and no score scale; ENF flags when toxicScore or any
 // trait risk is >= flagAt (default 50, env INTERCEPTA_FLAG_AT). See docs/intercepta.md.
 //
 // Every failure (timeout, network, non-200, unparseable body) is { status: "unknown" } — never a throw,

@@ -45,7 +45,7 @@ export function dnsDecode(hex: Hex): string | null {
 }
 
 /**
- * Parses text(mount.parents): split on commas, trim, drop empties, normalize each, dedupe.
+ * Parses text(enf.parents): split on commas, trim, drop empties, normalize each, dedupe.
  * Entries that fail ENSIP-15 are returned in `invalid` (never throws).
  */
 export function parseParents(raw: string | null | undefined): { parents: string[]; invalid: string[] } {
@@ -61,19 +61,19 @@ export function parseParents(raw: string | null | undefined): { parents: string[
   return { parents, invalid };
 }
 
-/** Parents from mount.parents plus the typed parent (deduped, typed parent last if not already listed). */
+/** Parents from enf.parents plus the typed parent (deduped, typed parent last if not already listed). */
 export function doorwayParents(parents: string[] | undefined, typedParent: string): string[] {
   const out = [...(parents ?? [])];
   if (typedParent && !out.includes(typedParent)) out.push(typedParent);
   return out;
 }
 
-/** Max sibling doorways verified per call (bounds fan-out from an arbitrarily long mount.parents record). */
+/** Max sibling doorways verified per call (bounds fan-out from an arbitrarily long enf.parents record). */
 export const MAX_DOORWAYS = 16;
 
 /**
  * Keeps at most `max` doorway parents, always including the typed parent; returns the rest as `skipped`
- * (in mount.parents order).
+ * (in enf.parents order).
  */
 export function capDoorways(parents: string[], typedParent: string, max = MAX_DOORWAYS): { parents: string[]; skipped: string[] } {
   if (parents.length <= max) return { parents, skipped: [] };

@@ -49,10 +49,10 @@ rin -> 0x85Ca78Db...: registered
 
 === 04-records.ts
 addr(60) -> 0x532D761cC9b12B0d6f7B9ed2f6C0cFEd7cD1420d
-mount.canonical -> support.vendor.eth
-mount.parents -> support.vendor.eth,support.shopa.eth,support.shopb.eth
-agent-context -> https://mount.example/fleet
-agent-endpoint[web] -> https://mount.example/fleet/chat
+enf.canonical -> support.vendor.eth
+enf.parents -> support.vendor.eth,support.shopa.eth,support.shopb.eth
+agent-context -> https://enf.example/fleet
+agent-endpoint[web] -> https://enf.example/fleet/chat
 
 setup-all: done [exit 0]
 ```
@@ -65,7 +65,7 @@ RPC http://127.0.0.1:8545; UR = viem sepolia default 0xeeeeeeee14d718c2b47d9923d
 OK mia/kai/rin . support.{shopa,shopb,vendor,scam}.eth -> 0x532D761c...420d   (12/12)
 OK nobody.support.shopa.eth -> null
 OK support.shopa.eth -> null
-OK mount.canonical / mount.parents text records match
+OK enf.canonical / enf.parents text records match
 all resolution checks passed
 ```
 
@@ -105,7 +105,7 @@ C1 PASS / C2 PASS (doorway registry is the registry of support.vendor.eth) / C3 
 $ npx tsx scripts/verify.ts mia.support.scam.eth
 VERDICT  RED     counterfeit mount: C3 failed
 C1 PASS / C2 PASS (registry IS the canonical fleet registry — confirms C2 passes "by construction") /
-C3 FAIL (support.scam.eth not in mount.parents) / C4 PASS / C5 PASS (clean, same address as legit mounts)
+C3 FAIL (support.scam.eth not in enf.parents) / C4 PASS / C5 PASS (clean, same address as legit mounts)
 
 $ npx tsx scripts/verify.ts bob.support.shopa.eth
 VERDICT  BLACK   not a member: no resolver for bob.support.shopa.eth (ResolverNotFound)
@@ -141,7 +141,7 @@ Beat 4 — counterfeit mount, live (using kai since mia was just unregistered):
 ```
 $ curl /api/verify?name=kai.support.scam.eth
 red   counterfeit mount: C3 failed
-reasons: ["C3 two-sided consent: support.scam.eth is not in mount.parents [...]: the fleet never endorsed this doorway"]
+reasons: ["C3 two-sided consent: support.scam.eth is not in enf.parents [...]: the fleet never endorsed this doorway"]
 ```
 
 Beat 5 — Intercepta orange:

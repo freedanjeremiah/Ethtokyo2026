@@ -1,4 +1,4 @@
-// packages/verifier/src/node.ts — Node-only loader (uses fs). Import as "@mount/verifier/node".
+// packages/verifier/src/node.ts — Node-only loader (uses fs). Import as "@enf/verifier/node".
 
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

@@ -3,10 +3,10 @@
 // Operator writes the roster bundle into the shared resolver's DEFAULT record
 // (DNS name 0x00), which every member without its own record falls back to:
 //   addr(60)             = SETTLEMENT_ADDRESS (or a fresh address stored in .env.local)
-//   mount.canonical      = support.vendor.eth
-//   mount.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth (not scam)
-//   agent-context        = https://mount.example/fleet        (placeholder URL)
-//   agent-endpoint[web]  = https://mount.example/fleet/chat   (placeholder URL)
+//   enf.canonical      = support.vendor.eth
+//   enf.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth (not scam)
+//   agent-context        = https://enf.example/fleet        (placeholder URL)
+//   agent-endpoint[web]  = https://enf.example/fleet/chat   (placeholder URL)
 // Zero per-member record writes. Only differing entries are written. Idempotent.
 //
 //   npx tsx scripts/04-records.ts

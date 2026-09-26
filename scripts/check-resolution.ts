@@ -65,12 +65,12 @@ async function main() {
   if (!unregistered.includes("mia") && !unmounted.includes("shopa")) {
     const name = normalize("mia.support.shopa.eth");
     console.log();
-    for (const key of ["mount.canonical", "mount.parents", "agent-context", "agent-endpoint[web]"]) {
+    for (const key of ["enf.canonical", "enf.parents", "agent-context", "agent-endpoint[web]"]) {
       console.log(`     text(${name}, ${key}) = ${await client.getEnsText({ name, key })}`);
     }
-    report(`${name} mount.canonical`, await client.getEnsText({ name, key: "mount.canonical" }), "support.vendor.eth");
-    const parents = await client.getEnsText({ name, key: "mount.parents" });
-    report(`${name} mount.parents`, parents, "support.vendor.eth,support.shopa.eth,support.shopb.eth");
+    report(`${name} enf.canonical`, await client.getEnsText({ name, key: "enf.canonical" }), "support.vendor.eth");
+    const parents = await client.getEnsText({ name, key: "enf.parents" });
+    report(`${name} enf.parents`, parents, "support.vendor.eth,support.shopa.eth,support.shopb.eth");
   }
   console.log(failures ? `\n${failures} FAILURE(S)` : "\nall resolution checks passed");
   process.exit(failures ? 1 : 0);

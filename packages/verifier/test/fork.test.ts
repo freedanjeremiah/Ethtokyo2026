@@ -111,7 +111,7 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
     expect(check(r, "C1")?.pass).toBe(true);
     expect(check(r, "C2")?.pass).toBe(true); // same fleet registry is mounted; C3 is what catches it
     expect(check(r, "C3")?.pass).toBe(false);
-    expect(check(r, "C3")?.detail).toContain("support.scam.eth is not in mount.parents");
+    expect(check(r, "C3")?.detail).toContain("support.scam.eth is not in enf.parents");
     expect(check(r, "C4")?.pass).toBe(true);
     expect(r.summary).toContain("C3");
     // siblings: 3 endorsed doorways green + the typed counterfeit one
@@ -151,8 +151,8 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
     }
   });
 
-  it("a 429 on the mount.parents read rejects instead of showing a legit member as red", async () => {
-    const needle = stringToHex("mount.parents").slice(2);
+  it("a 429 on the enf.parents read rejects instead of showing a legit member as red", async () => {
+    const needle = stringToHex("enf.parents").slice(2);
     const upstream = http(RPC_URL)({});
     const flaky = createPublicClient({
       transport: custom(
@@ -209,9 +209,9 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
   describe("Intercepta demo: static-list screen + demo-dirty/clean-settlement (truth table on chain)", () => {
     const ENDORSED = ["vendor", "shopa", "shopb"];
     const MEMBERS = ["mia", "kai", "rin"];
-    // Same derivation as scripts/lib/fleet.ts ensureDirtySettlementAddress (tag "mount.dirty-settlement.v1").
+    // Same derivation as scripts/lib/fleet.ts ensureDirtySettlementAddress (tag "enf.dirty-settlement.v1").
     const dirty = () =>
-      privateKeyToAccount(keccak256(concat([envLocal().OPERATOR_PK as `0x${string}`, stringToHex("mount.dirty-settlement.v1")]))).address;
+      privateKeyToAccount(keccak256(concat([envLocal().OPERATOR_PK as `0x${string}`, stringToHex("enf.dirty-settlement.v1")]))).address;
 
     it("legit + clean -> green; scam + clean -> red (screening passes, C3 fails)", async () => {
       const { screen, source } = screenFromEnv({ SCREEN_FLAGGED: dirty() });

@@ -1,12 +1,12 @@
-// packages/verifier/src/verify.ts — the MOUNT verifier (IMPLEMENTATION_PLAN Part A §A4).
+// packages/verifier/src/verify.ts — the ENF verifier (IMPLEMENTATION_PLAN Part A §A4).
 //
 //   membership  UR.findResolver(dns(name)): member only if a resolver is found AT THE LEAF (offset 0)
 //   records     stock viem getEnsAddress / getEnsText through the deployment's UniversalResolver
 //   walk        RootRegistry -> ... -> typed parent's registry -> subregistry("support") = R_doorway
 //   C1          R_doorway.getState(labelhash(label)): REGISTERED and not expired (tokenId re-read every call)
-//   C2          R_doorway == UniversalHelper.findExactRegistry(mount.canonical)
-//               AND UniversalHelper.findCanonicalName(R_doorway) == mount.canonical
-//   C3          typed parent ∈ mount.parents
+//   C2          R_doorway == UniversalHelper.findExactRegistry(enf.canonical)
+//               AND UniversalHelper.findCanonicalName(R_doorway) == enf.canonical
+//   C3          typed parent ∈ enf.parents
 //   C4          every entry on the typed parent's path (e.g. shopa.eth, support.shopa.eth) REGISTERED and not expired
 //   C5          optional injected screen(addr)
 //
@@ -115,8 +115,8 @@ async function readRecords(ctx: Ctx, name: string) {
   const text = (key: string) => getEnsText(ctx.client, { ...opt, key });
   const [address, canonical, parents, agentContext, agentEndpointWeb] = await Promise.all([
     getEnsAddress(ctx.client, opt),
-    text("mount.canonical"),
-    text("mount.parents"),
+    text("enf.canonical"),
+    text("enf.parents"),
     text("agent-context"),
     text("agent-endpoint[web]"),
   ]);
@@ -196,7 +196,7 @@ function checkC4(ctx: Ctx, parent: string, w: Awaited<ReturnType<typeof walk>>):
 
 export function checkC2(doorway: Address | null, canonical: string | undefined, rCanonical: Address | null, canonicalNameOfDoorway: string | null): Check {
   const title = "canonical registry match";
-  if (!canonical) return { id: "C2", title, pass: false, detail: "no valid mount.canonical record" };
+  if (!canonical) return { id: "C2", title, pass: false, detail: "no valid enf.canonical record" };
   if (!doorway) return { id: "C2", title, pass: false, detail: "no doorway registry to compare" };
   if (isZero(rCanonical)) return { id: "C2", title, pass: false, detail: `${canonical} has no registry (findExactRegistry = 0x0)` };
   const regMatch = doorway.toLowerCase() === rCanonical!.toLowerCase();
@@ -218,10 +218,10 @@ export function checkC2(doorway: Address | null, canonical: string | undefined, 
 
 export function checkC3(parent: string, parents: string[] | undefined, invalid: string[]): Check {
   const title = "two-sided consent";
-  if (!parents) return { id: "C3", title, pass: false, detail: "no mount.parents record" };
+  if (!parents) return { id: "C3", title, pass: false, detail: "no enf.parents record" };
   const listed = `[${parents.join(", ")}]${invalid.length ? ` (ignored invalid: ${invalid.join(", ")})` : ""}`;
-  if (!parents.includes(parent)) return { id: "C3", title, pass: false, detail: `${parent} is not in mount.parents ${listed}: the fleet never endorsed this doorway` };
-  return { id: "C3", title, pass: true, detail: `${parent} is listed in mount.parents ${listed}` };
+  if (!parents.includes(parent)) return { id: "C3", title, pass: false, detail: `${parent} is not in enf.parents ${listed}: the fleet never endorsed this doorway` };
+  return { id: "C3", title, pass: true, detail: `${parent} is listed in enf.parents ${listed}` };
 }
 
 async function checkC5(ctx: Ctx, address: Address): Promise<Check> {

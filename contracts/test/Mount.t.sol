@@ -5,7 +5,7 @@ import {MountBase} from "./MountBase.sol";
 import {IPermissionedRegistry} from "../src/interfaces/IPermissionedRegistry.sol";
 import {IPermissionedResolver} from "../src/interfaces/IPermissionedResolver.sol";
 
-/// @title MOUNT — every claim of idea.md §2 / §6, proven against the real ENSv2 contracts on a pinned Sepolia fork.
+/// @title ENF — every claim of idea.md §2 / §6, proven against the real ENSv2 contracts on a pinned Sepolia fork.
 /// One test per claim. World: see MountBase (fleet mounted under vendor.eth, shopa.eth, shopb.eth; members mia/kai/rin).
 contract MountTest is MountBase {
     // ------------------------------------------------------------------ idea §2: one token, many mounts
@@ -62,7 +62,7 @@ contract MountTest is MountBase {
                 string memory name = memberName(members[m], parents[p]);
                 assertEq(sharedResolver.getRecordId(namehash(dns(name))), 0, string.concat(name, ": has own record"));
                 assertMemberResolves(name);
-                (string memory v,) = urText(name, "mount.parents");
+                (string memory v,) = urText(name, "enf.parents");
                 assertEq(v, ENDORSED_PARENTS);
                 (v,) = urText(name, "agent-context");
                 assertEq(v, AGENT_CONTEXT_URL);
@@ -194,7 +194,7 @@ contract MountTest is MountBase {
     /// A member cannot write the shared resolver (neither its own name nor the default bundle),
     /// and cannot re-point its own registry entry to another resolver.
     function test_memberCannotWriteSharedResolver() public {
-        uint256 keyResource = uint256(keccak256(bytes("mount.canonical")));
+        uint256 keyResource = uint256(keccak256(bytes("enf.canonical")));
         bytes memory ownName = dns(memberName("mia", "vendor"));
 
         vm.startPrank(mia);
@@ -203,14 +203,14 @@ contract MountTest is MountBase {
                 IPermissionedResolver.EACUnauthorizedAccountRoles.selector, keyResource, RES_ROLE_SET_TEXT, mia
             )
         );
-        sharedResolver.setText(ownName, "mount.canonical", "support.scam.eth");
+        sharedResolver.setText(ownName, "enf.canonical", "support.scam.eth");
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 IPermissionedResolver.EACUnauthorizedAccountRoles.selector, keyResource, RES_ROLE_SET_TEXT, mia
             )
         );
-        sharedResolver.setText(hex"00", "mount.canonical", "support.scam.eth");
+        sharedResolver.setText(hex"00", "enf.canonical", "support.scam.eth");
 
         uint256 entryResource = fleet.getState(labelId("mia")).resource;
         vm.expectRevert(
@@ -231,16 +231,16 @@ contract MountTest is MountBase {
     function test_scopedMemberRoleWouldRewriteEveryone() public {
         // Operator grants mia a setter role derived from a setText call on HER OWN name.
         bytes memory scopedTo =
-            abi.encodeCall(IPermissionedResolver.setText, (dns(memberName("mia", "vendor")), "mount.canonical", ""));
+            abi.encodeCall(IPermissionedResolver.setText, (dns(memberName("mia", "vendor")), "enf.canonical", ""));
         vm.prank(operator);
         sharedResolver.grantSetterRoles(scopedTo, mia);
 
         // ...but mia can now rewrite the DEFAULT record: every member under every doorway changes.
         vm.prank(mia);
-        sharedResolver.setText(hex"00", "mount.canonical", "support.scam.eth");
+        sharedResolver.setText(hex"00", "enf.canonical", "support.scam.eth");
         for (uint256 m; m < members.length; m++) {
             for (uint256 p; p < parents.length; p++) {
-                (string memory v,) = urText(memberName(members[m], parents[p]), "mount.canonical");
+                (string memory v,) = urText(memberName(members[m], parents[p]), "enf.canonical");
                 assertEq(v, "support.scam.eth", "default bundle rewritten by a member");
             }
         }
@@ -248,15 +248,15 @@ contract MountTest is MountBase {
         // ...and another member's own value.
         string memory kaiName = memberName("kai", "vendor");
         vm.prank(mia);
-        sharedResolver.setText(dns(kaiName), "mount.canonical", "hijacked-by-mia");
-        (string memory kaiValue,) = urText(kaiName, "mount.canonical");
+        sharedResolver.setText(dns(kaiName), "enf.canonical", "hijacked-by-mia");
+        (string memory kaiValue,) = urText(kaiName, "enf.canonical");
         assertEq(kaiValue, "hijacked-by-mia", "kai's record rewritten by mia");
     }
 
     // ------------------------------------------------------------------ idea §6 #2: counterfeit mounts
 
     /// Anyone can mount the fleet under their own name and it resolves (the settlement address included);
-    /// only the canonical back-pointer and the roster's own mount.parents reveal it as counterfeit.
+    /// only the canonical back-pointer and the roster's own enf.parents reveal it as counterfeit.
     function test_counterfeitMountResolves() public {
         vm.deal(scam, 10 ether);
         _obtainEth("scam", scam, ONE_YEAR);
@@ -277,7 +277,7 @@ contract MountTest is MountBase {
         assertEq(helper.findExactRegistry(dns("support.scam.eth")), address(fleet));
         assertEq(helper.findCanonicalRegistry(dns("support.scam.eth")), address(0));
         // ... and the roster never endorsed it (two-sided consent fails).
-        (string memory endorsed,) = urText(name, "mount.parents");
+        (string memory endorsed,) = urText(name, "enf.parents");
         assertEq(endorsed, ENDORSED_PARENTS);
         assertEq(vm.indexOf(endorsed, "support.scam.eth"), type(uint256).max, "scam not endorsed");
     }
