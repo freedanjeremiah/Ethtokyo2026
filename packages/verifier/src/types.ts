@@ -24,6 +24,8 @@ export type Check = {
   screen?: ScreenStatus;
   /** Only on C5: the screen's own reason string, verbatim (absent if the screen gave none). */
   screenReason?: string;
+  /** Only on C2: the canonical doorway itself has no registry (unmounted), rather than a mismatch. */
+  canonicalUnmounted?: boolean;
 };
 
 export type Membership = {

@@ -1,6 +1,6 @@
 // Pure unit tests: no network.
 import { describe, expect, it } from "vitest";
-import { aggregateVerdict, dnsDecode, dnsEncode, doorwayParents, parseParents, safeNormalize, splitName } from "../src/pure";
+import { aggregateVerdict, dnsDecode, dnsEncode, doorwayParents, parseParents, safeNormalize, splitName, summarize } from "../src/pure";
 import { checkC2, checkC3 } from "../src/verify";
 import type { Check } from "../src/types";
 
@@ -110,5 +110,20 @@ describe("C2 / C3 builders", () => {
     expect(r.pass).toBe(false);
     expect(r.detail).toContain("support.scam.eth is not in enf.parents");
     expect(checkC3("support.shopa.eth", undefined, []).pass).toBe(false);
+  });
+});
+
+describe("summarize (red)", () => {
+  const canonical = "support.vendor.eth";
+  it("an unmounted canonical doorway is not called a counterfeit", () => {
+    const c2 = checkC2("0x0000000000000000000000000000000000000001", canonical, null, null);
+    expect(c2.canonicalUnmounted).toBe(true);
+    const s = summarize("red", "support.shopa.eth", canonical, [], [ok("C1"), c2, ok("C3"), ok("C4")]);
+    expect(s).toBe("canonical doorway support.vendor.eth unmounted: C2 failed");
+  });
+  it("a registry mismatch or missing consent is a counterfeit mount", () => {
+    expect(summarize("red", "support.scam.eth", canonical, [], [ok("C1"), ok("C2"), bad("C3"), ok("C4")])).toBe("counterfeit mount: C3 failed");
+    const c2 = checkC2("0x0000000000000000000000000000000000000001", canonical, "0x0000000000000000000000000000000000000002", null);
+    expect(summarize("red", "support.scam.eth", canonical, [], [ok("C1"), c2, ok("C3"), ok("C4")])).toBe("counterfeit mount: C2 failed");
   });
 });

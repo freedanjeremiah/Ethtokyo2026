@@ -125,8 +125,11 @@ export function summarize(verdict: Verdict, parent: string | null, canonical: st
     case "green":
       return `mounted by ${parent} (canonical ${canonical})`;
     case "red": {
-      const failed = checks.filter((c) => (c.id === "C2" || c.id === "C3") && !c.pass).map((c) => c.id);
-      return `counterfeit mount: ${failed.join(" + ")} failed`;
+      const failed = checks.filter((c) => (c.id === "C2" || c.id === "C3") && !c.pass);
+      // Only C2 failed because the canonical doorway is unmounted: the vendor's own name is down,
+      // which says nothing about this doorway being fake.
+      if (failed.length === 1 && failed[0]!.canonicalUnmounted) return `canonical doorway ${canonical} unmounted: C2 failed`;
+      return `counterfeit mount: ${failed.map((c) => c.id).join(" + ")} failed`;
     }
     case "orange":
       return "endorsed doorway, flagged counterparty";

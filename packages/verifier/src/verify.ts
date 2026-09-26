@@ -198,7 +198,7 @@ export function checkC2(doorway: Address | null, canonical: string | undefined, 
   const title = "canonical registry match";
   if (!canonical) return { id: "C2", title, pass: false, detail: "no valid enf.canonical record" };
   if (!doorway) return { id: "C2", title, pass: false, detail: "no doorway registry to compare" };
-  if (isZero(rCanonical)) return { id: "C2", title, pass: false, detail: `${canonical} has no registry (findExactRegistry = 0x0)` };
+  if (isZero(rCanonical)) return { id: "C2", title, pass: false, detail: `${canonical} has no registry (findExactRegistry = 0x0)`, canonicalUnmounted: true };
   const regMatch = doorway.toLowerCase() === rCanonical!.toLowerCase();
   const nameMatch = canonicalNameOfDoorway === canonical;
   const shownName = canonicalNameOfDoorway ? `"${canonicalNameOfDoorway}"` : "none";
