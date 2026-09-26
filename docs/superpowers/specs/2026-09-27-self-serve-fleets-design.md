@@ -36,8 +36,9 @@ A connected wallet walks four screens. Every step reads chain state first and pl
    - `register("support", subregistry = fleet, resolver = 0x0)` in the vendor parent registry
    - `setParent` back-pointers: vendor registry → (ETHRegistry, `alice`), fleet → (vendor registry, `support`)
    - per doorway: parent registry deploy + `setSubregistry` + `register("support" → fleet)`
-   - Proxy salts derive from the canonical name (`keccak256("fns.fleet-registry.v1" ‖ canonical)`, etc.), so one wallet can own several fleets and addresses are predictable.
-   - Settlement address: the vendor's own address by default (editable).
+   - Proxy salts: `keccak256("fns.fleet.v1:<canonical>")`, `fns.resolver.v1:<canonical>`, `fns.parent.v1:<label>`, so one wallet can own several fleets and addresses are predictable. Commits carry `subregistry = <predicted parent registry>`, so a new name is mounted at registration.
+   - The build runs in **phases, each one batch**: *commit* (all proxy deploys + all commits), *wait* (countdown), *build* (mint, approve, register names, `support` mounts, `setParent`, agents). The server returns only the earliest incomplete phase; the client re-plans after each.
+   - Settlement address: the vendor's own address. The *clean* action restores it to the vendor address.
 4. **Hire agents.** Label + address (Generate button or paste). One `register(label, agent, resolver = shared, roles = 0)` each.
 
 It ends with **Open in editor** → `/editor?fleet=support.alice.eth`, and the fleet is added to this browser's "my fleets" list.
@@ -68,9 +69,10 @@ It ends with **Open in editor** → `/editor?fleet=support.alice.eth`, and the f
 
 ## 4. Editor
 
-- **Fleet context** from `?fleet=`; no parameter means the demo fleet. The top bar gets a **fleet switcher**: my fleets (localStorage + fleets whose vendor is the connected wallet), the demo fleet, **+ New fleet** → `/start`.
+- **Fleet context** from `?fleet=`; no parameter means the demo fleet. The top bar gets a **fleet switcher**: my fleets (localStorage + `GET /api/fleets?owner=`, which finds the wallet's `UserRegistry` proxies from `ProxyDeployed` logs and names them through their `setParent` back-pointers), the demo fleet, **+ New fleet** → `/start`.
+- **Chain steps re-plan until done.** A chain block plans, sends each same-signer group as one batch, and plans again (up to 6 rounds) until the plan is empty, so steps that depend on a fresh deploy (Add a doorway) work.
 - **Owner vs visitor.** If the connected wallet is not the vendor, chain nodes show a lock and "Viewing: only the owner can run chain steps"; check nodes still run. The demo fleet keeps its multi-account switching.
-- **New blocks:** *Hire an agent* (label + address/Generate), *Add a doorway* (owned, unmounted names). *Mount the counterfeit doorway* picks from owned, unendorsed names (`scam.eth` for the demo fleet). Other blocks are unchanged; their dropdowns already come from the live scan.
+- **New blocks:** *Hire an agent* (label + address/Generate), *Add a doorway* (a typed label of a `.eth` name the vendor owns; the server checks ownership). *Mount the counterfeit doorway* takes a typed owned label (`scam` for the demo fleet). Other blocks are unchanged; their dropdowns already come from the live scan.
 - **Presets:** `presets(fleet)` builds the same stories from the fleet's first doorway and first agent. The demo fleet gets today's presets exactly.
 - **Saving/sharing:** storage key `fns.playbooks.v2:<fleet>`; the old unscoped list migrates to the demo fleet. Share links carry `?fleet=…&playbook=…`.
 - **Empty states:** no agents → "Hire your first agent" on the canvas. An unknown or unmounted `fleet=` → a clear error with a link to `/start`.
@@ -89,7 +91,7 @@ It ends with **Open in editor** → `/editor?fleet=support.alice.eth`, and the f
 
 ## 6. Testing
 
-- **Unit (vitest):** salt/address derivation, `resolveFleet` against mocked reads, `presets(fleet)`, playbook storage and share links with a fleet.
-- **Anvil fork:** `scripts/e2e-selfserve.ts` runs the full plan (names → fleet → doorways → agents) from a fresh key through the same planner, then asserts verdicts through `@fns/verifier`: green on an endorsed doorway, black after unmount/fire, red on the counterfeit mount, orange after a dirty settlement address.
+- **Unit (vitest):** fleet-name parsing and salts, name classification, signer grouping and batch-error classification, `presets(fleet)`, playbook storage and share links with a fleet. `resolveFleet` and the planners are covered by the fork run.
+- **Anvil fork:** `scripts/e2e-selfserve.ts` runs the full plan (names → fleet → doorways → agents) from a fresh key through the same planner, then asserts verdicts through `@fns/verifier`: green on an endorsed doorway, black after unmount/fire, red on the counterfeit mount. (Orange needs the mainnet sanctions oracle, so it is checked in the manual run.)
 - **Manual:** one real MetaMask run on Sepolia (batching and fallback).
 - **Regression:** demo fleet presets, verdicts and old share links behave as today.
