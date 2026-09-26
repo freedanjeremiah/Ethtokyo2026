@@ -1,7 +1,16 @@
 // Agent x doorway coverage: one verify() per cell, all at the same block.
 import { useEffect, useRef } from "react";
+import type { Verdict } from "@enf/verifier";
 import type { FleetScan } from "@/lib/fleet-types";
 import { Avatar, Card, VERDICT, doorwayShort } from "./ui";
+
+/** Coverage aside: per-verdict counts from scan.cells, only non-zero, in this order. */
+const SUMMARY_ORDER: { key: Verdict; label: string }[] = [
+  { key: "green", label: "verified" },
+  { key: "orange", label: "flagged" },
+  { key: "red", label: "counterfeit" },
+  { key: "black", label: "not live" },
+];
 
 export function Coverage({
   scan,
@@ -26,7 +35,10 @@ export function Coverage({
 
   const doors = scan.doorways.filter((d): d is typeof d & { name: string } => !!d.name);
   const cell = (agent: string, door: string) => scan.cells.find((c) => c.agent === agent && c.doorway === door);
-  const s = scan.stats;
+
+  const counts: Record<Verdict, number> = { green: 0, orange: 0, red: 0, black: 0 };
+  for (const c of scan.cells) counts[c.verdict]++;
+  const summary = SUMMARY_ORDER.filter((v) => counts[v.key] > 0);
 
   return (
     <Card
@@ -34,7 +46,12 @@ export function Coverage({
       title="Coverage"
       aside={
         <span className="muted">
-          <strong className="num">{s.cellsGreen}</strong> of <span className="num">{s.cellsTotal}</span> verified
+          {summary.map((v, i) => (
+            <span key={v.key}>
+              {i > 0 && " · "}
+              <strong className="num">{counts[v.key]}</strong> {v.label}
+            </span>
+          ))}
         </span>
       }
     >
@@ -46,7 +63,12 @@ export function Coverage({
                 Agent
               </th>
               {doors.map((d) => (
-                <th key={d.name} scope="col" title={d.name} className={focus.doorway === d.name ? "focus" : ""}>
+                <th
+                  key={d.name}
+                  scope="col"
+                  title={`${d.name}: ${d.declared ? "Endorsed" : "Counterfeit"}`}
+                  className={focus.doorway === d.name ? "focus" : ""}
+                >
                   <span className={!d.declared ? "text-red" : ""}>{doorwayShort(d.name)}</span>
                 </th>
               ))}

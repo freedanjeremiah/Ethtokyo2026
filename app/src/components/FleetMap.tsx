@@ -20,7 +20,7 @@ type Mount = "endorsed" | "counterfeit" | "dead";
 const mountOf = (d: Door): Mount => (!d.mounted ? "dead" : d.declared ? "endorsed" : "counterfeit");
 
 function doorTag(d: Door): { text: string; tone: Tone } {
-  if (!d.discovered) return { text: "Never mounted", tone: "grey" };
+  if (!d.discovered) return { text: "Unmounted", tone: "grey" };
   if (!d.mounted) return { text: "Unmounted", tone: "grey" };
   if (!d.declared) return { text: "Counterfeit", tone: "red" };
   return d.canonical ? { text: "Canonical", tone: "blue" } : { text: "Endorsed", tone: "green" };

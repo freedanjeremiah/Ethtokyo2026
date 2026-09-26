@@ -298,6 +298,15 @@ input {
   flex-wrap: wrap;
 }
 
+.eyebrow {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
 .page-title {
   margin: 0;
   font-size: 34px;
@@ -1157,7 +1166,7 @@ input {
 .check-head {
   width: 100%;
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto 14px;
+  grid-template-columns: 20px minmax(0, 1fr) 14px;
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
@@ -1176,12 +1185,6 @@ input {
   font-weight: 700;
 }
 
-.check-id {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-3);
-}
-
 .caret {
   color: var(--text-3);
   transition: transform 200ms var(--ease);
@@ -1192,12 +1195,19 @@ input {
 }
 
 .check-detail {
-  margin: 0;
   padding: 0 12px 12px 42px;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--text-2);
   overflow-wrap: anywhere;
+}
+
+.check-detail p {
+  margin: 0;
+}
+
+.check-detail p + p {
+  margin-top: 6px;
 }
 
 /* ------------------------------------------------------------ responsive */

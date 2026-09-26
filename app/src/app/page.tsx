@@ -290,8 +290,13 @@ export default function Page() {
           <div className="title-text">
             {scan ? (
               <>
+                <p className="eyebrow">Agent fleet</p>
                 <h1 className="page-title">{scan.canonical ?? "ENF fleet"}</h1>
                 <Summary scan={scan} />
+                <p className="hint">
+                  Each doorway is a .eth name the same agent fleet answers under. Endorsed means the fleet agreed to it; counterfeit means someone
+                  mounted it without consent. Pick any cell to see why.
+                </p>
               </>
             ) : (
               <div className="stack">
@@ -321,7 +326,7 @@ export default function Page() {
               title="Fleet map"
               aside={
                 <span className="legend">
-                  <span className="lg endorsed" /> Endorsed <span className="lg counterfeit" /> Counterfeit <span className="lg dead" /> Not live
+                  <span className="lg endorsed" /> Endorsed <span className="lg counterfeit" /> Counterfeit <span className="lg dead" /> Unmounted
                 </span>
               }
               className="map-card"

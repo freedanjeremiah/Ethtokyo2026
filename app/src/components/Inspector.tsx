@@ -14,6 +14,15 @@ const CHECK_TITLE: Record<Check["id"], string> = {
   C5: "Settlement address screened",
 };
 
+/** Plain one-line explanation shown first when a check is expanded, above the raw verifier detail. */
+const CHECK_EXPLAIN: Record<Check["id"], string> = {
+  C1: "The agent's name token still exists in the fleet registry.",
+  C2: "This doorway points at the fleet's own registry, not a copy.",
+  C3: "The fleet lists this doorway as one it agreed to be mounted under.",
+  C4: "The parent .eth name that forms the doorway is registered and unexpired.",
+  C5: "The address this name pays out to is not on a sanctions or scam list.",
+};
+
 function CheckRow({ check }: { check: Check }) {
   const [open, setOpen] = useState(false);
   const unknown = check.screen === "unknown";
@@ -24,10 +33,16 @@ function CheckRow({ check }: { check: Check }) {
       <button type="button" className="check-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <I size={20} weight="fill" className={`text-${tone}`} aria-hidden />
         <span className="check-title">{CHECK_TITLE[check.id]}</span>
-        <span className="check-id">{check.id}</span>
         <CaretDown size={14} weight="bold" className={`caret${open ? " open" : ""}`} aria-hidden />
       </button>
-      {open && <p className="check-detail mono">{check.detail}</p>}
+      {open && (
+        <div className="check-detail">
+          <p>{CHECK_EXPLAIN[check.id]}</p>
+          <p className="mono">
+            Check {check.id}: {check.detail}
+          </p>
+        </div>
+      )}
     </li>
   );
 }
@@ -42,8 +57,8 @@ function explain(r: VerifyApiResponse): string {
       return "Endorsed doorway and live agent, but the settlement address is flagged.";
     case "red": {
       const why = [
-        failed.has("C3") ? "the fleet does not list this doorway in enf.parents" : null,
-        failed.has("C2") ? "it is not served by the fleet's canonical registry" : null,
+        failed.has("C3") ? "the fleet never agreed to be mounted under this doorway" : null,
+        failed.has("C2") ? "it points at a copy, not the fleet's own registry" : null,
       ].filter(Boolean);
       return `It resolves, but ${why.join(" and ")}.`;
     }
