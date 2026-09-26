@@ -21,6 +21,7 @@ import {
   type Abi,
   type Address,
   type Hex,
+  concat,
   decodeFunctionResult,
   encodeFunctionData,
   getAddress,
@@ -32,7 +33,7 @@ import {
   zeroAddress,
 } from "viem";
 import { normalize, packetToBytes } from "viem/ens";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import {
   type ActorLabel,
   type ActorWalletClient,
@@ -43,6 +44,7 @@ import {
   detectChainKind,
   publicClient,
   readEnvFileValue,
+  requireEnv,
   upsertEnvFile,
   walletClientFor,
 } from "./env.js";
@@ -454,14 +456,32 @@ export async function ensureMember(member: Member, fleet: Address, sharedResolve
 
 // ---------------------------------------------------------------- records
 
-/** SETTLEMENT_ADDRESS from env, else a fresh address generated once and stored in .env.local. */
+/** Domain separator for deriving the default settlement key from the operator key. */
+export const SETTLEMENT_DERIVATION_TAG = "mount.settlement.v1";
+
+/**
+ * Default settlement key, derived deterministically from the operator key:
+ * keccak256(OPERATOR_PK || "mount.settlement.v1"). Losing .env.local therefore
+ * never changes addr(60), and the key (hence any funds) is always recoverable
+ * from OPERATOR_PK.
+ */
+export function deriveSettlementKey(): Hex {
+  const operatorPk = requireEnv("OPERATOR_PK") as Hex;
+  return keccak256(concat([operatorPk, stringToHex(SETTLEMENT_DERIVATION_TAG)]));
+}
+
+/**
+ * SETTLEMENT_ADDRESS if explicitly set (env / .env.local); otherwise the
+ * operator-derived address, stored with its key (SETTLEMENT_PK) in .env.local.
+ */
 export function ensureSettlementAddress(): Address {
   const fromEnv = process.env.SETTLEMENT_ADDRESS || readEnvFileValue(ENV_LOCAL_PATH, "SETTLEMENT_ADDRESS");
   if (fromEnv) return getAddress(fromEnv);
-  const addr = privateKeyToAccount(generatePrivateKey()).address; // key discarded: receive-only demo address
-  upsertEnvFile(ENV_LOCAL_PATH, { SETTLEMENT_ADDRESS: addr });
+  const pk = deriveSettlementKey();
+  const addr = privateKeyToAccount(pk).address;
+  upsertEnvFile(ENV_LOCAL_PATH, { SETTLEMENT_ADDRESS: addr, SETTLEMENT_PK: pk });
   process.env.SETTLEMENT_ADDRESS = addr;
-  console.log(`  generated SETTLEMENT_ADDRESS=${addr} (stored in .env.local)`);
+  console.log(`  derived SETTLEMENT_ADDRESS=${addr} from OPERATOR_PK (address + SETTLEMENT_PK stored in .env.local)`);
   return addr;
 }
 

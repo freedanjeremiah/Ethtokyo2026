@@ -68,6 +68,7 @@ async function main() {
     for (const key of ["mount.canonical", "mount.parents", "agent-context", "agent-endpoint[web]"]) {
       console.log(`     text(${name}, ${key}) = ${await client.getEnsText({ name, key })}`);
     }
+    report(`${name} mount.canonical`, await client.getEnsText({ name, key: "mount.canonical" }), "support.vendor.eth");
     const parents = await client.getEnsText({ name, key: "mount.parents" });
     report(`${name} mount.parents`, parents, "support.vendor.eth,support.shopa.eth,support.shopb.eth");
   }
