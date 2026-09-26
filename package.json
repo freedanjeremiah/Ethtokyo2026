@@ -1,0 +1,16 @@
+{
+  "name": "mount",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "scripts"
+  ],
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "viem": "^2.35.0",
+    "dotenv": "^16.4.7",
+    "vitest": "^2.1.8"
+  }
+}
