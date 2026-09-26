@@ -13,7 +13,7 @@
 import { type Address, type Hex, encodeFunctionData, getAddress, labelhash, zeroAddress, zeroHash } from "viem";
 import { MOUNT_LABEL, classifyName, doorwayName, fleetSalt, formatParents, normLabel, parentSalt } from "./fleet-ref";
 import type { NameStatus, OnboardPlan, OnboardRequest, TxStep } from "./fleet-types";
-import { contract, predictProxy } from "./fleet-resolve.server";
+import { contract, predictProxy, readText } from "./fleet-resolve.server";
 import { simulateSteps } from "./actions.server";
 import { rpcClient } from "./rpc.server";
 
@@ -67,11 +67,15 @@ export async function planOnboard(req: OnboardRequest): Promise<OnboardPlan> {
 
   // ---- proxies (addresses are CREATE2-predictable, so later phases can point at them before they exist)
   const regInit = encodeFunctionData({ abi: regAbi, functionName: "initialize", args: [[{ account: owner, roleBitmap: ALL_ROLES }]] });
+  // The fleet's text records: seeded in initialize, and re-set in the build phase if the doorways changed since.
+  const texts: [key: string, value: string][] = [
+    ["enf.canonical", canonical],
+    ["enf.parents", formatParents(labels)],
+    ["agent-context", `FNS fleet ${canonical}: agents answer under ${labels.map(doorwayName).join(", ")}.`],
+  ];
   const seed = [
     encodeFunctionData({ abi: resolverAbi, functionName: "setAddress", args: ["0x00", 60n, owner] }),
-    encodeFunctionData({ abi: resolverAbi, functionName: "setText", args: ["0x00", "enf.canonical", canonical] }),
-    encodeFunctionData({ abi: resolverAbi, functionName: "setText", args: ["0x00", "enf.parents", formatParents(labels)] }),
-    encodeFunctionData({ abi: resolverAbi, functionName: "setText", args: ["0x00", "agent-context", `FNS fleet ${canonical}: agents answer under ${labels.map(doorwayName).join(", ")}.`] }),
+    ...texts.map(([key, value]) => encodeFunctionData({ abi: resolverAbi, functionName: "setText", args: ["0x00", key, value] })),
   ] as Hex[];
   const resolverInit = encodeFunctionData({ abi: resolverAbi, functionName: "initialize", args: [[{ account: owner, roleBitmap: ALL_ROLES }], seed] });
   const deploys: TxStep[] = [];
@@ -135,6 +139,9 @@ export async function planOnboard(req: OnboardRequest): Promise<OnboardPlan> {
   if (!same(p1, eth.address) || l1 !== req.vendor) steps.push(tx(`Link ${req.vendor}.eth's registry to its name`, owner, vendorReg, "setParent", [eth.address, req.vendor]));
   const [p2, l2] = await read<[Address, string]>(fleetReg, "getParent");
   if (!same(p2, vendorReg.address) || l2 !== MOUNT_LABEL) steps.push(tx(`Link the fleet to ${canonical}`, owner, fleetReg, "setParent", [vendorReg.address, MOUNT_LABEL]));
+  const resolverC = { address: shared.address, abi: resolverAbi };
+  for (const [key, value] of texts)
+    if ((await readText(shared.address, key)) !== value) steps.push(tx(`Set the fleet's ${key} record`, owner, resolverC, "setText", ["0x00", key, value]));
   for (const a of req.agents) {
     const st = await read<{ status: number; latestOwner: Address }>(fleetReg, "getState", [labelId(a.label)]);
     if (st.status === 2) {
