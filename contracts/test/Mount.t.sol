@@ -76,7 +76,9 @@ contract MountTest is MountBase {
 
     /// A merchant unmounts with ONE tx (setSubregistry(support, 0)); only its doorway dies.
     function test_merchantUnmountKillsOnlyItsDoorway() public {
-        assertMemberResolves(memberName("mia", "shopa"));
+        for (uint256 m; m < members.length; m++) {
+            assertMemberResolves(memberName(members[m], "shopa")); // alive before
+        }
 
         vm.prank(shopa);
         parentRegistry["shopa"].setSubregistry(labelId(MOUNT_LABEL), address(0));
@@ -91,6 +93,9 @@ contract MountTest is MountBase {
 
     /// The vendor unregisters a member with ONE tx; that member dies under EVERY doorway, other members live.
     function test_vendorUnregisterKillsAllDoorways() public {
+        for (uint256 p; p < parents.length; p++) {
+            assertMemberResolves(memberName("mia", parents[p])); // alive before
+        }
         uint256 oldTokenId = fleet.getTokenId(labelId("mia"));
         assertEq(fleet.ownerOf(oldTokenId), mia);
 
@@ -256,6 +261,7 @@ contract MountTest is MountBase {
         vm.deal(scam, 10 ether);
         _obtainEth("scam", scam, ONE_YEAR);
         _setupParentRegistry("scam", scam);
+        assertNoResolver(memberName("mia", "scam")); // dead before the counterfeit mount
         _mount("scam", scam); // no consent from the vendor needed
 
         string memory name = memberName("mia", "scam");
