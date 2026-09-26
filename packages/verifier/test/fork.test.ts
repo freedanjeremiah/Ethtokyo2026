@@ -38,7 +38,8 @@ const SKIP = await skipReason();
 if (SKIP) console.warn(`\n[verifier fork tests] SKIPPED: ${SKIP}\n`);
 
 const deployment = loadDeployment(resolve(REPO_ROOT, "deployments", "sepolia.json"));
-const client = createPublicClient({ transport: http(RPC_URL) });
+// cacheTime 0: viem caches getBlockNumber for 4s, so a demo script that finishes faster would read a stale block.
+const client = createPublicClient({ transport: http(RPC_URL), cacheTime: 0 });
 const fleet = SKIP ? null : (JSON.parse(readFileSync(FLEET_FILE, "utf8")) as { fleetRegistry: string; settlementAddress: string });
 
 const v = (name: string, screen?: Screen) => verify(client, name, { deployment, screen });
