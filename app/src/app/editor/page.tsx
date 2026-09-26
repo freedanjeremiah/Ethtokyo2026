@@ -133,11 +133,13 @@ export default function EditorPage() {
     if (runner.need && collapsed) setCollapsed(false);
   }, [runner.need, collapsed, setCollapsed]);
 
-  // A shared ?playbook= link opens that playbook instead of the default demo.
+  // A shared ?playbook= link opens that playbook instead of the default demo; a broken one says so.
+  const [badShareLink, setBadShareLink] = useState(false);
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("playbook");
     const shared = code ? decodePlaybook(code) : null;
     if (shared) setPlaybook(shared);
+    else if (code) setBadShareLink(true);
   }, []);
 
   const parents = useMemo(() => {
@@ -318,6 +320,12 @@ export default function EditorPage() {
           {d.rpcDown && (
             <p className="notice tone-orange banner" role="alert">
               The chain RPC is not answering. Retrying every second; what you see is from the last block that could be read.
+            </p>
+          )}
+
+          {badShareLink && (
+            <p className="notice tone-orange banner" role="alert">
+              This share link is broken or incomplete, so the demo playbook is open instead.
             </p>
           )}
 
