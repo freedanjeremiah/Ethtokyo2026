@@ -40,8 +40,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
               Hire a fleet with one transaction. Fire it with one.
             </h1>
             <p className="hero-lede">
-              One ENSv2 agent registry under many .eth names, where the merchant and the vendor each switch it off in one transaction and any ENS
-              client can spot a counterfeit.
+              One ENSv2 agent fleet under many .eth names. Either side can switch it off. Counterfeits get caught.
             </p>
             <div className="hero-actions">
               <Link href="/editor" className="btn btn-primary btn-lg">
@@ -59,20 +58,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
         <section id="how" className="how" aria-labelledby="how-h">
           <h2 id="how-h" className="section-title">
-            One registry, reachable under every merchant&apos;s name
+            One registry, every merchant&apos;s name
           </h2>
-          <p className="section-lede">
-            A vendor runs a support fleet: agents mia, kai and rin, each one token in one ENSv2 registry. Merchants mount that same registry under
-            their own name. Nothing is copied, so every doorway answers with the same agents.
-          </p>
+          <p className="section-lede">A vendor runs the agents. Merchants mount them under their own name. Nothing is copied.</p>
 
           <div className="mech">
             <div className="mech-text">
               <h3 className="mech-title">One fleet, many doorways</h3>
               <p>
-                Each merchant points <span className="nm">support.&lt;merchant&gt;.eth</span> at the fleet registry with <span className="mono">setSubregistry</span>, one
-                transaction it controls. One registration then answers under every doorway: the same token, the same owner, resolved by stock ENS
-                clients.
+                One <span className="mono">setSubregistry</span> points <span className="nm">support.&lt;merchant&gt;.eth</span> at the fleet. Every name
+                resolves to the same token.
               </p>
             </div>
             <div className="mech-figure fan" aria-label="Three names resolving to one agent token">
@@ -97,10 +92,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <div className="mech">
             <div className="mech-text">
               <h3 className="mech-title">Two kill switches, opposite owners</h3>
-              <p>
-                The merchant can drop the fleet: one transaction clears its own doorway and nothing else. The vendor can fire an agent: one
-                transaction unregisters it, and it goes dark under every doorway at once.
-              </p>
+              <p>Merchant unmounts: only its doorway goes dark. Vendor fires an agent: it goes dark everywhere.</p>
             </div>
             <div className="mech-figure switches">
               <div className="switch">
@@ -144,8 +136,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <div className="mech-text">
               <h3 className="mech-title">Counterfeits resolve. The verifier catches them.</h3>
               <p>
-                Anyone can mount the fleet under their own name without asking, and ENS will resolve it. So a doorway only counts when both sides
-                agree: the parent mounted the fleet, and the fleet lists that parent in its own <span className="mono">enf.parents</span> record.
+                Anyone can mount the fleet. It only counts if the fleet lists that parent in <span className="mono">enf.parents</span>.
               </p>
             </div>
             <div className="mech-figure checks" aria-label="Verifier checks for kai.support.scam.eth">
@@ -176,7 +167,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
                   <span className="cid">C4</span>
                 </li>
               </ul>
-              <p className="checks-foot">Also checked: canonical registry match (C2) and counterparty screening (C5).</p>
+              <p className="checks-foot">Also checked: C2, C5.</p>
             </div>
           </div>
         </section>
@@ -186,10 +177,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <h2 id="close-h" className="section-title">
               Write the demo as a playbook
             </h2>
-            <p className="section-lede">
-              Drop blocks on a canvas, wire them together, and branch on a check. Press Run and sign each transaction in your own wallet; the live
-              fleet map shows what each step touches and what changed. The server never holds a key.
-            </p>
+            <p className="section-lede">Wire blocks, press Run, sign in your wallet. No server keys.</p>
             <Link href="/editor" className="btn btn-primary btn-lg">
               Open editor
               <ArrowRight size={18} weight="bold" aria-hidden />
@@ -211,7 +199,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       </main>
 
       <footer className="land-foot">
-        <span>FNS, the Fleet Naming Service. Built on ENSv2 on Sepolia.</span>
+        <span>FNS · ENSv2 on Sepolia</span>
         <Link href="/editor">Open editor</Link>
       </footer>
     </>

@@ -271,6 +271,7 @@ function PlaybookPanel({ playbook, onChange, running, need, account, onRun, onCa
   const chainCount = playbook.nodes.filter((n) => live.has(n.id) && BLOCKS[n.kind].chain).length;
   const checkCount = playbook.nodes.filter((n) => live.has(n.id) && !BLOCKS[n.kind].chain).length;
   const loose = playbook.nodes.length - live.size;
+  const signers = [...new Set(playbook.nodes.filter((n) => live.has(n.id) && BLOCKS[n.kind].chain).map((n) => BLOCKS[n.kind].signer))];
 
   return (
     <aside className="playbook" aria-label="Playbook">
@@ -335,7 +336,12 @@ function PlaybookPanel({ playbook, onChange, running, need, account, onRun, onCa
       </div>
 
       <div className="pb-foot">
-        {need && (
+        {need?.kind === "connect" && (
+          <div className="need" role="status">
+            <p>In your wallet, tick the {need.signers.join(", ")} (tick every owner account at once to skip this later) and press Connect. After that, each transaction opens as the right account, with no switching.</p>
+          </div>
+        )}
+        {need?.kind === "switch" && (
           <div className="need" role="status">
             <p>
               Switch your wallet to the {need.signer} (<span className="mono">{shortAddr(need.from)}</span>) to sign the next transaction.
@@ -360,7 +366,7 @@ function PlaybookPanel({ playbook, onChange, running, need, account, onRun, onCa
         <p className="pb-foot-hint">
           {live.size === 0
             ? "Wire a block to the trigger to run it."
-            : `${live.size} ${live.size === 1 ? "node" : "nodes"} on the run path: ${chainCount} signed in your wallet, ${checkCount} checks.${loose ? ` ${loose} not wired in.` : ""}`}
+            : `${live.size} ${live.size === 1 ? "node" : "nodes"} on the run path: ${chainCount} signed in your wallet, ${checkCount} checks.${loose ? ` ${loose} not wired in.` : ""}${signers.length ? ` Signers: ${signers.join(", ")}.` : ""}`}
           {account ? "" : " Transactions are signed in your browser wallet."}
         </p>
       </div>

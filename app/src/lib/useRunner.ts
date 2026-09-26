@@ -1,16 +1,18 @@
 // app/src/lib/useRunner.ts — runs playbook steps. Client only.
 //
 // Chain steps: /api/actions plans the unsigned transactions (the server holds no keys), the browser wallet signs
-// each one from the account that owns the name, and the step waits for its receipt. Check steps: /api/verify at a
+// each one from the account that owns the name, and the step waits for its receipt. Every owner is connected to the
+// page once, so each transaction is sent from its owner without switching; a wallet that only sends from the
+// selected account falls back to asking the viewer to switch. Check steps: /api/verify at a
 // block no older than the last transaction this run sent, so a check never reads the chain from before it.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import type { Verdict } from "@fns/verifier";
 import type { VerifyApiResponse } from "./api-types";
-import type { ActionPlan } from "./fleet-types";
+import type { ActionPlan, TxStep } from "./fleet-types";
 import { type Step, actionOf } from "./playbook";
-import { connect, pickAccount, sendStep, useWallet, waitForReceipt } from "./wallet";
+import { connect, connectedAccounts, pickAccount, sendStep, useWallet, waitForReceipt } from "./wallet";
 
 export type RunStatus = "idle" | "queued" | "running" | "done" | "failed" | "cancelled";
 
@@ -24,8 +26,8 @@ export type StepRun = {
   pass?: boolean;
 };
 
-/** A step is waiting for the viewer to switch the wallet to the account that must sign it. */
-export type Need = { signer: string; from: Address } | null;
+/** A step is waiting for the viewer to connect the owners it signs with, or to switch to the one that must sign it. */
+export type Need = { kind: "connect"; signers: string[] } | { kind: "switch"; signer: string; from: Address } | null;
 
 const sameAddr = (a: string | null | undefined, b: string) => !!a && a.toLowerCase() === b.toLowerCase();
 
@@ -79,10 +81,45 @@ export function useRunner({ onChainChange, onChecked }: { onChainChange: () => v
 
   function waitForAccount(from: Address, signer: string): Promise<void> {
     if (sameAddr(accountRef.current, from)) return Promise.resolve();
-    setNeed({ signer, from });
+    setNeed({ kind: "switch", signer, from });
     return new Promise((resolve) => {
       waitRef.current = { from, resolve };
     });
+  }
+
+  /** Asks the viewer, once, to connect every owner this plan signs with that is not connected yet. Not fatal: an owner
+   * left out is switched to when its transaction comes up. */
+  async function connectSigners(plan: Extract<ActionPlan, { ok: true }>, wait: <T>(message: string, p: Promise<T>) => Promise<T>) {
+    const connected = await wait("Preparing the transactions.", connectedAccounts());
+    const missing = plan.steps.filter((tx) => !connected.some((a) => sameAddr(a, tx.from)));
+    if (missing.length === 0) return;
+    const signers = [...new Set(missing.map((tx) => tx.signer))];
+    setNeed({ kind: "connect", signers });
+    try {
+      await wait(`Tick the ${signers.join(", ")} in your wallet (and keep the others ticked), then Connect.`, pickAccount());
+    } catch (err) {
+      if (err instanceof Cancelled) throw err;
+      // Rejected or unsupported: fall back to switching per transaction.
+    } finally {
+      setNeed(null);
+    }
+  }
+
+  /** Sends `tx` from its owner: straight away when the owner is connected, else (or if the wallet only sends from the
+   * selected account) once the viewer switches to it. */
+  async function sendAs(tx: TxStep, n: string, wait: <T>(message: string, p: Promise<T>) => Promise<T>) {
+    const connected = await wait(`${n}${tx.what}.`, connectedAccounts());
+    if (connected.some((a) => sameAddr(a, tx.from))) {
+      try {
+        return await wait(`${n}${tx.what}. Confirm it in your wallet as the ${tx.signer}.`, sendStep(tx));
+      } catch (err) {
+        const code = (err as { code?: number }).code;
+        if (err instanceof Cancelled || code === 4001 || code === -32002 || sameAddr(accountRef.current, tx.from)) throw err;
+        // This wallet only sends from the selected account.
+      }
+    }
+    await wait(`${n}switch your wallet to the ${tx.signer}.`, waitForAccount(tx.from, tx.signer));
+    return wait(`${n}${tx.what}. Confirm it in your wallet.`, sendStep(tx));
   }
 
   async function runChainStep(step: Step, wait: <T>(message: string, p: Promise<T>) => Promise<T>) {
@@ -96,11 +133,11 @@ export function useRunner({ onChainChange, onChecked }: { onChainChange: () => v
     const plan = (await res.json()) as ActionPlan;
     if (!plan.ok) throw new Error(plan.error);
     if (plan.steps.length === 0) return "Already done. No transaction needed.";
+    await connectSigners(plan, wait);
     const txs: StepRun["txs"] = [];
     for (const [i, tx] of plan.steps.entries()) {
       const n = plan.steps.length > 1 ? `Transaction ${i + 1} of ${plan.steps.length}: ` : "";
-      await wait(`${n}switch your wallet to the ${tx.signer}.`, waitForAccount(tx.from, tx.signer));
-      const hash = await wait(`${n}${tx.what}. Confirm it in your wallet.`, sendStep(tx));
+      const hash = await sendAs(tx, n, wait);
       txs.push({ what: tx.what, hash });
       patch(step.id, { txs: [...txs] });
       const block = await wait(`${n}${tx.what}. Sent; waiting for it to be mined.`, waitForReceipt(tx, hash));

@@ -26,6 +26,13 @@ export async function connectedAccount(): Promise<Address | null> {
   return accounts[0] ? getAddress(accounts[0]) : null;
 }
 
+/** Every account the viewer has connected to this page, selected one first. */
+export async function connectedAccounts(): Promise<Address[]> {
+  const eth = provider();
+  if (!eth) return [];
+  return (await eth.request({ method: "eth_accounts" })).map((a) => getAddress(a));
+}
+
 /** Fired after this page connects or switches accounts, so every useWallet() agrees even if the wallet stays quiet. */
 const CHANGED = "fns:wallet";
 function announce(account: Address | null) {
@@ -62,7 +69,8 @@ export function useWallet(): { account: Address | null; available: boolean } {
   return { account, available };
 }
 
-/** Opens the wallet's account picker, so the viewer can switch to the account a step needs. */
+/** Opens the wallet's account picker, so the viewer can connect (tick) every account the playbook signs with, or
+ * switch to the one a step needs. */
 export async function pickAccount(): Promise<Address | null> {
   const eth = provider();
   if (!eth) return null;

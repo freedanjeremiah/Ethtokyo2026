@@ -215,7 +215,7 @@ export function HeroPreview() {
               <XCircle size={14} weight="fill" aria-hidden />
               Counterfeit
             </span>
-            <span className="pstep-why">It resolves, but support.scam.eth is not in the fleet&apos;s enf.parents.</span>
+            <span className="pstep-why">Resolves, but not in enf.parents.</span>
           </li>
         </ol>
         <MiniMap phase={phase} />

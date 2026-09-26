@@ -31,13 +31,13 @@ export function LiveBlock() {
     };
   }, []);
 
-  if (down) return <p className="live-line">Sepolia is not answering right now; the editor retries every second.</p>;
+  if (down) return <p className="live-line">Sepolia unreachable. Retrying…</p>;
   return (
     <p className="live-line">
       <span className="live" aria-hidden />
       {block ? (
         <>
-          Reading Sepolia live, block <span className="num">{fmtBlock(block)}</span>
+          Live on Sepolia · block <span className="num">{fmtBlock(block)}</span>
         </>
       ) : (
         "Connecting to Sepolia"

@@ -319,7 +319,7 @@ export default function EditorPage() {
         <div className="workspace stage">
           {d.rpcDown && (
             <p className="notice tone-orange banner" role="alert">
-              The chain RPC is not answering. Retrying every second; what you see is from the last block that could be read.
+              RPC not answering. Retrying; showing the last block read.
             </p>
           )}
 
@@ -331,7 +331,7 @@ export default function EditorPage() {
 
           {d.scan && d.scan.doorways.some((x) => x.name === d.scan!.canonical && !x.mounted) && (
             <p className="notice tone-orange banner" role="status">
-              {d.scan.canonical} is unmounted, so no doorway can be confirmed against the fleet&apos;s own registry. Run Reset the demo to remount it.
+              {d.scan.canonical} is unmounted. Run &ldquo;Reset the demo&rdquo; to remount.
             </p>
           )}
 
