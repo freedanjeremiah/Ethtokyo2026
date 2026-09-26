@@ -28,3 +28,5 @@ app/.impeccable/direction-payload.json
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+.impeccable/

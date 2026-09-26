@@ -13,9 +13,6 @@ fleet with one transaction it controls, and drops it with one. The vendor remove
 every merchant with one transaction. A verifier built on stock viem + the real UniversalResolver
 tells green/red/orange/black apart, live, for any typed name.
 
-See [`idea.md`](idea.md) for the original pitch and [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
-for the build log.
-
 ---
 
 ## 1. Architecture
@@ -66,8 +63,6 @@ resolver, which would have falsified the whole demo the moment a judge typed a m
 | `packages/verifier/` | `@fns/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
 | `app/` | Next.js app. `/` is the landing page (`app/src/app/page.tsx`). `/editor` is the playbook editor (`app/src/app/editor/page.tsx`, `app/src/components/WorkflowCanvas.tsx`): build the demo as a node workflow on a canvas (check a name, unmount, fire, sanctioned/clean settlement, counterfeit mount, reset), wire nodes together, branch a check on "As expected" / "Otherwise", run it with each transaction signed in the browser wallet, save them in the browser or share them as a link, beside the live topology graph, agent × doorway verdict grid, on-chain timeline and the single-name verifier. Old `/?name=` links redirect to `/editor`. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (plans the kill-switch transactions for the browser wallet to sign; the server holds no keys; `FNS_KILL_SWITCHES=off` disables). |
 | `contracts/` | Foundry fork tests (`contracts/test/Mount.t.sol`) exercising the real deployed ENSv2 contracts — no mocks. |
-| `docs/ensv2-notes.md` | Pinned ENSv2 deployment research: addresses, `getState` field order, role bit layout, resolution semantics — all VERIFIED-ONCHAIN or VERIFIED-SOURCE against the live deployment. |
-| `docs/intercepta.md` | Intercepta (Web3 Antivirus) API research and the C5 screening design. |
 
 ---
 
@@ -109,13 +104,13 @@ unavailable rather than showing a clean bill of health.
 | Legit mount, dirty settlement | pass | flagged | **ORANGE** |
 | Non-member (`bob.support.shopa.eth`) | — (`ResolverNotFound`) | — | **BLACK** |
 
-**Correction vs. the original pitch (`idea.md`):** the counterfeit mount of the *real* fleet
+**Correction vs. the original pitch:** the counterfeit mount of the *real* fleet
 registry under `support.scam.eth` is caught by **C3, two-sided consent** —
 `support.scam.eth` is not in the fleet's own `enf.parents` record. **C2 (canonical registry)
 passes by construction** for this attack, because `scam.eth`'s "support" subregistry really is
 the same fleet registry as the legitimate mounts; C2 exists to catch a *copied or forked*
 registry pretending to be canonical, not this one. The pitch's demo row ("canonical registry
-mismatch") was inaccurate for this scenario and has been corrected in `idea.md` §4 and here.
+mismatch") was inaccurate for this scenario and has been corrected here.
 
 ---
 
@@ -143,7 +138,7 @@ deploy any Solidity of its own.
 
 ## 4. Contract addresses (Sepolia, pinned in `deployments/sepolia.json`)
 
-Source of truth: `docs/ensv2-notes.md` §1 (bytecode-verified against the live chain,
+Source of truth: `deployments/sepolia.json` (bytecode-verified against the live chain,
 2026-09-26). These are the real, deployed ENSv2 contracts — FNS uses no mocks and no custom
 registry/resolver code.
 
@@ -228,8 +223,7 @@ Sepolia; produced only after a live run — not yet performed, see §7).
 
 ## 7. Runbook
 
-All commands below were executed, in order, from a clean fork state, during this task. Full
-command-by-command output is in [`docs/runbook-evidence.md`](docs/runbook-evidence.md).
+All commands below were executed, in order, from a clean fork state, during this task.
 
 ### 7.1 Setup
 
@@ -293,11 +287,11 @@ npm run dev -w app
 
 | # | Command | What the screen shows |
 |---|---|---|
-| 1 | type `mia.support.shopa.eth` | GREEN — "mounted by support.shopa.eth (canonical support.vendor.eth)". [`docs/screenshots/green.png`](docs/screenshots/green.png) |
-| 2 | `npx tsx scripts/demo-unmount.ts shopb` (merchant B's own `setSubregistry`, one tx) | `mia.support.shopb.eth` -> BLACK next block ("not a member: ... ResolverNotFound"); `mia.support.shopa.eth` stays GREEN — "fired the vendor." [`docs/screenshots/unmount-flip.png`](docs/screenshots/unmount-flip.png) |
+| 1 | type `mia.support.shopa.eth` | GREEN — "mounted by support.shopa.eth (canonical support.vendor.eth)". |
+| 2 | `npx tsx scripts/demo-unmount.ts shopb` (merchant B's own `setSubregistry`, one tx) | `mia.support.shopb.eth` -> BLACK next block ("not a member: ... ResolverNotFound"); `mia.support.shopa.eth` stays GREEN — "fired the vendor." |
 | 3 | `npx tsx scripts/demo-unregister.ts mia` (vendor's `unregister`, one tx) | every remaining `mia.*` doorway -> BLACK in the same block (`kai.*` unaffected) — "fired one agent everywhere." |
-| 4 | type `kai.support.scam.eth` (the counterfeit mount) | **It resolves.** RED — "counterfeit mount: C3 failed" (`support.scam.eth` not in `enf.parents`; C2 passes by construction). ENS's own documented aliasing attack, caught live. [`docs/screenshots/red-counterfeit.png`](docs/screenshots/red-counterfeit.png) |
-| 5 (Intercepta) | `npx tsx scripts/demo-dirty-settlement.ts` (operator's one multicall) | every endorsed doorway (vendor/shopa/shopb) -> ORANGE "endorsed doorway, flagged counterparty"; the counterfeit `scam` doorway stays RED (same address, ENS precedence). [`docs/screenshots/orange.png`](docs/screenshots/orange.png), [`docs/screenshots/red-dirty.png`](docs/screenshots/red-dirty.png) |
+| 4 | type `kai.support.scam.eth` (the counterfeit mount) | **It resolves.** RED — "counterfeit mount: C3 failed" (`support.scam.eth` not in `enf.parents`; C2 passes by construction). ENS's own documented aliasing attack, caught live. |
+| 5 (Intercepta) | `npx tsx scripts/demo-dirty-settlement.ts` (operator's one multicall) | every endorsed doorway (vendor/shopa/shopb) -> ORANGE "endorsed doorway, flagged counterparty"; the counterfeit `scam` doorway stays RED (same address, ENS precedence). |
 | — | `npx tsx scripts/demo-clean-settlement.ts` then `npx tsx scripts/demo-reset.ts` | restores the clean settlement address and remounts/re-registers everything touched by beats 2–3 |
 
 All five beats above were executed against the live fork during this task, via
@@ -404,7 +398,7 @@ something this submission has built.
 - Stock viem returns `null` for a non-member's `getEnsAddress`/`getEnsText` (it does not throw),
   so the verifier's black-verdict membership check calls the UniversalResolver's resolver lookup
   directly and requires the resolver to be set **at the leaf**, not inherited from a wildcard
-  parent resolver — see `docs/ensv2-notes.md` §5 and the topology note in §1 above.
+  parent resolver — see the topology note in §1 above.
 - The public Sepolia RPC (`ethereum-sepolia-rpc.publicnode.com`) rate-limits (`429`) under the
   load of a full fork setup + test run. Override it with `SEPOLIA_RPC_URL` (and `RPC_URL` for the
   fork's own port) — a Tenderly gateway RPC was used for every run in this task.
@@ -413,7 +407,7 @@ something this submission has built.
 
 ## 10. Intercepta (C5 screening)
 
-Full detail in [`docs/intercepta.md`](docs/intercepta.md). Summary:
+Summary:
 
 - Intercepta's public API is the **Web3 Antivirus ("W3A") API**
   (https://docs.web3antivirus.io/reference/api-overview): `GET

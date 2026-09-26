@@ -1,8 +1,8 @@
 # FNS contracts
 
 Foundry project holding `contracts/test/Mount.t.sol`: fork tests against the real, deployed
-ENSv2 contracts on Sepolia (no mocks — see `../docs/ensv2-notes.md` for the pinned addresses and
-`../deployments/sepolia.json` for the machine-readable copy). There is no FNS Solidity source of
+ENSv2 contracts on Sepolia (no mocks — see
+`../deployments/sepolia.json` for the pinned addresses). There is no FNS Solidity source of
 its own; FNS composes stock ENSv2 registries and resolvers from scripts (`../scripts/`) and a
 TypeScript verifier (`../packages/verifier/`).
 
