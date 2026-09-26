@@ -4,8 +4,8 @@
 // Both scripts/verify.ts (CLI) and the app's /api/verify route need to agree on exactly which
 // screening config is active, so this is the one place that reconciles process.env with the
 // repo-root .env.local file: process.env wins for scalar keys, and SCREEN_FLAGGED is the UNION
-// of both sources (an entry written to .env.local by scripts/demo-dirty-settlement.ts is never
-// masked by, nor masks, a shell-exported value). Previously the CLI relied on dotenv's
+// of both sources (an entry in .env.local is never masked by, nor masks, a shell-exported
+// value). Previously the CLI relied on dotenv's
 // load-once-at-import semantics (shell wins, no union) while the app did this union by hand —
 // the two could disagree on SCREEN_FLAGGED. This module is the single resolver for both.
 

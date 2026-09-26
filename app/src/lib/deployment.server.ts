@@ -132,8 +132,9 @@ let cachedScreening: { signature: string; selection: ScreenSelection } | null = 
  * Server-only screening selection, resolved by the same shared resolver scripts/verify.ts uses
  * (@fns/verifier/screen/node screenFromEnvFile) so the CLI and the app always agree on which
  * screening config is active. process.env wins for scalar keys; SCREEN_FLAGGED is the union of
- * process.env and the repo-root .env.local (where scripts/demo-dirty-settlement.ts writes it),
- * re-read on every call so the demo works without restarting the dev server. The Screen (and
+ * process.env and the repo-root .env.local, re-read on every call so a hand-edited deny-list takes
+ * effect without restarting the dev server. (demo-dirty-settlement.ts writes only
+ * DIRTY_SETTLEMENT_ADDRESS; that address is flagged by the sanctions oracle, not by this list.) The Screen (and
  * Intercepta's per-address cache) is rebuilt only when the config changes. INTERCEPTA_API_KEY
  * never leaves the server.
  */
