@@ -13,7 +13,7 @@
 //   npx tsx scripts/demo-dirty-settlement.ts
 //   npx tsx scripts/demo-clean-settlement.ts   # undo
 
-import { sanctionsOracleScreen } from "@enf/verifier/screen";
+import { sanctionsOracleScreen } from "@fns/verifier/screen";
 import { ensureDirtySettlementAddress, setDefaultSettlement } from "./lib/fleet.js";
 
 async function main() {

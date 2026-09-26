@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@enf/verifier": "0.0.0",
+    "@fns/verifier": "0.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "next": "16.3.6",
     "react": "^19.0.0",

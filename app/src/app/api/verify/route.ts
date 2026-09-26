@@ -8,13 +8,13 @@
 // ?block= pins the verdict to a specific block (e.g. the fleet scan's blockNumber) instead of
 // latest, so the Inspector and the Coverage/map panels read the same chain state.
 //
-// C5 (counterparty screening) uses getScreening() -> screenFromEnvFile (@enf/verifier/screen/node,
+// C5 (counterparty screening) uses getScreening() -> screenFromEnvFile (@fns/verifier/screen/node,
 // the same resolver scripts/verify.ts uses), server side only: Intercepta when
 // INTERCEPTA_API_KEY is set, the SCREEN_FLAGGED static list otherwise. A screening outage is C5 "unknown"
 // (the verdict stays ENS-determined and the UI shows "screening unavailable"), never a 502.
 
 import { NextResponse } from "next/server";
-import { verify, type VerifyResult } from "@enf/verifier";
+import { verify, type VerifyResult } from "@fns/verifier";
 import { FleetFileMissingError, type FleetFile, getDeployment, getScreening, readFleetFile } from "@/lib/deployment.server";
 import { rpcClient, rpcErrorMessage } from "@/lib/rpc.server";
 import type { VerifyApiResponse } from "@/lib/api-types";

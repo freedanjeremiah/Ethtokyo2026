@@ -53,7 +53,7 @@ export const ICON: Record<StepKind, { I: Icon; tone: Tone | "neutral" }> = {
 };
 
 /** Drag payload type for palette blocks dropped on the canvas. */
-export const BLOCK_MIME = "application/x-enf-block";
+export const BLOCK_MIME = "application/x-fns-block";
 
 /** A small popover anchored to its trigger. It is positioned against the viewport (fixed), so the scrolling step
  * list cannot clip it, opens upward when there is more room above, and follows its trigger on scroll. Closes on Escape,

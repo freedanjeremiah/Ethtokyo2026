@@ -1,5 +1,5 @@
 // Shared (client + server) shape of GET /api/fleet. Types only — safe to import from client components.
-import type { Verdict } from "@enf/verifier";
+import type { Verdict } from "@fns/verifier";
 
 /** One place the fleet registry is (or was) mounted, found from SubregistryUpdated logs — never from config. */
 export type FleetDoorway = {

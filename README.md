@@ -1,4 +1,4 @@
-# ENF — Ethereum Naming Fleet
+# FNS — Fleet Naming Service
 
 **Hire a fleet with one transaction, fire it with one.**
 
@@ -42,7 +42,7 @@ for the build log.
                        enf.canonical      = support.vendor.eth
                        enf.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth
                        agent-context        = inline fleet description (ENSIP-26 text)
-                       agent-endpoint[web]  = the ENF dashboard URL (PUBLIC_BASE_URL)
+                       agent-endpoint[web]  = the FNS dashboard URL (PUBLIC_BASE_URL)
 ```
 
 `mia.support.shopa.eth`, `mia.support.shopb.eth` and `mia.support.vendor.eth` are the same
@@ -63,8 +63,8 @@ resolver, which would have falsified the whole demo the moment a judge typed a m
 |---|---|
 | `deployments/sepolia.json` + `deployments/abis/*.json` | Pinned ENSv2 contract addresses/ABIs on Sepolia (Task 2). All app/verifier/script code reads addresses from here — nothing is hardcoded. |
 | `scripts/` | Setup and demo scripts (TypeScript, `tsx`, viem). Actor keys and RPC config in `.env.local`. |
-| `packages/verifier/` | `@enf/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
-| `app/` | Next.js app. `/` is the landing page (`app/src/app/page.tsx`). `/editor` is the playbook editor (`app/src/app/editor/page.tsx`, `app/src/components/WorkflowCanvas.tsx`): build the demo as a node workflow on a canvas (check a name, unmount, fire, sanctioned/clean settlement, counterfeit mount, reset), wire nodes together, branch a check on "As expected" / "Otherwise", run it with each transaction signed in the browser wallet, save them in the browser or share them as a link, beside the live topology graph, agent × doorway verdict grid, on-chain timeline and the single-name verifier. Old `/?name=` links redirect to `/editor`. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (plans the kill-switch transactions for the browser wallet to sign; the server holds no keys; `ENF_KILL_SWITCHES=off` disables). |
+| `packages/verifier/` | `@fns/verifier` — the pure verdict algorithm (`src/verify.ts`, `src/pure.ts`), a deployment loader (`src/node.ts`), and the C5 screening adapters (`src/screen/`). Consumed by both `scripts/verify.ts` and the app. |
+| `app/` | Next.js app. `/` is the landing page (`app/src/app/page.tsx`). `/editor` is the playbook editor (`app/src/app/editor/page.tsx`, `app/src/components/WorkflowCanvas.tsx`): build the demo as a node workflow on a canvas (check a name, unmount, fire, sanctioned/clean settlement, counterfeit mount, reset), wire nodes together, branch a check on "As expected" / "Otherwise", run it with each transaction signed in the browser wallet, save them in the browser or share them as a link, beside the live topology graph, agent × doorway verdict grid, on-chain timeline and the single-name verifier. Old `/?name=` links redirect to `/editor`. Server routes: `/api/verify`, `/api/block`, `/api/fleet` (discovers every mount of the fleet from `SubregistryUpdated` logs and verifies every agent × doorway at one block — `app/src/lib/fleet-scan.server.ts`), `/api/actions` (plans the kill-switch transactions for the browser wallet to sign; the server holds no keys; `FNS_KILL_SWITCHES=off` disables). |
 | `contracts/` | Foundry fork tests (`contracts/test/Mount.t.sol`) exercising the real deployed ENSv2 contracts — no mocks. |
 | `docs/ensv2-notes.md` | Pinned ENSv2 deployment research: addresses, `getState` field order, role bit layout, resolution semantics — all VERIFIED-ONCHAIN or VERIFIED-SOURCE against the live deployment. |
 | `docs/intercepta.md` | Intercepta (Web3 Antivirus) API research and the C5 screening design. |
@@ -136,7 +136,7 @@ mismatch") was inaccurate for this scenario and has been corrected in `idea.md` 
 There is **no dedicated UserRegistry factory** — both the fleet's `UserRegistry` and the shared
 `PermissionedResolver` are deployed as proxies through ENSv2's generic
 `VerifiableFactory.deployProxy(implementation, salt, initData)` (`deployments/sepolia.json` →
-`VerifiableFactory`). This matches ENS's own deployment tooling; ENF did not need to write or
+`VerifiableFactory`). This matches ENS's own deployment tooling; FNS did not need to write or
 deploy any Solidity of its own.
 
 ---
@@ -144,17 +144,17 @@ deploy any Solidity of its own.
 ## 4. Contract addresses (Sepolia, pinned in `deployments/sepolia.json`)
 
 Source of truth: `docs/ensv2-notes.md` §1 (bytecode-verified against the live chain,
-2026-09-26). These are the real, deployed ENSv2 contracts — ENF uses no mocks and no custom
+2026-09-26). These are the real, deployed ENSv2 contracts — FNS uses no mocks and no custom
 registry/resolver code.
 
-| Name | Address | Role in ENF |
+| Name | Address | Role in FNS |
 |---|---|---|
 | RootRegistry | [`0x9703DBD26dAB89504490994138cF2c575251a9cE`](https://sepolia.etherscan.io/address/0x9703DBD26dAB89504490994138cF2c575251a9cE) | Root of the v2 tree |
 | ETHRegistry | [`0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E`](https://sepolia.etherscan.io/address/0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E) | `.eth` registry — `vendor`/`shopa`/`shopb`/`scam` live here |
 | ETHRegistrar | [`0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca`](https://sepolia.etherscan.io/address/0xAbe76F6C8DFcEd81AA5A2bB8034202A7136b94ca) | Commit/reveal `.eth` registrar |
 | UserRegistryImpl | [`0xA80338aAA8D23831cEa25E858D1774534aBb0263`](https://sepolia.etherscan.io/address/0xA80338aAA8D23831cEa25E858D1774534aBb0263) | Implementation behind the fleet's + each parent's `UserRegistry` proxy |
 | PermissionedResolverImpl | [`0x14F09Fd05d4585759e54844DC9B00147131Cf243`](https://sepolia.etherscan.io/address/0x14F09Fd05d4585759e54844DC9B00147131Cf243) | Implementation behind the shared resolver proxy |
-| VerifiableFactory | [`0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C`](https://sepolia.etherscan.io/address/0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C) | Deploys both proxies above (`deployProxy`) — no dedicated ENF/UserRegistry factory exists |
+| VerifiableFactory | [`0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C`](https://sepolia.etherscan.io/address/0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C) | Deploys both proxies above (`deployProxy`) — no dedicated FNS/UserRegistry factory exists |
 | UniversalResolverV2 | [`0x5d25C1D6aCBb71B7a28AA7899618a3412a8303e3`](https://sepolia.etherscan.io/address/0x5d25C1D6aCBb71B7a28AA7899618a3412a8303e3) | v2 UniversalResolver implementation |
 | ManagedUniversalResolverProxy | [`0x6d80F2172CFdEc5730fE683860C33d26fC42e6F1`](https://sepolia.etherscan.io/address/0x6d80F2172CFdEc5730fE683860C33d26fC42e6F1) | Proxy pointing at UniversalResolverV2; itself pointed at by the Upgradable proxy below |
 | UpgradableUniversalResolverProxy | [`0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe`](https://sepolia.etherscan.io/address/0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe) | viem's built-in Sepolia UR address — the stock resolution path the verifier and any wallet use |
@@ -163,7 +163,7 @@ registry/resolver code.
 | StandardRentPriceOracle | [`0x9B0b9C65BDAf9794Ff7697E4dCFb1f50581072BB`](https://sepolia.etherscan.io/address/0x9B0b9C65BDAf9794Ff7697E4dCFb1f50581072BB) | `.eth` registrar pricing |
 | MockUSDC | [`0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e`](https://sepolia.etherscan.io/address/0x16f95D91DBa7dA3Aca778Ec053dF0FF6C6A8aA8e) | Payment token accepted by ETHRegistrar (6 dp, permissionless `mint`) |
 
-ENF's own fleet registry, shared resolver, and per-parent (`vendor`/`shopa`/`shopb`/`scam`)
+FNS's own fleet registry, shared resolver, and per-parent (`vendor`/`shopa`/`shopb`/`scam`)
 `UserRegistry` addresses are **not** fixed — they are deployed fresh by `scripts/01-deploy-fleet.ts`
 and `scripts/02-mount.ts` each time the world is set up, and recorded in
 `deployments/fleet.anvil.json` (fork; gitignored) or `deployments/fleet.11155111.json` (live
@@ -177,9 +177,9 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   ENS and, as far as this project found, built by nobody: of ~25 non-ENS repos calling
   `setSubregistry`, every one was single-mount.
 - `linkToNode` / `linkToRecord`: verified available/present in `ensjs`'s own source during
-  research for this project — ENF does not call either (the shared resolver's default (`0x00`)
-  record does the aliasing work ENF needs); listed here only because they were part of the
-  registry-linking primitives investigated, not because ENF uses them.
+  research for this project — FNS does not call either (the shared resolver's default (`0x00`)
+  record does the aliasing work FNS needs); listed here only because they were part of the
+  registry-linking primitives investigated, not because FNS uses them.
 - Default-record (`0x00`) usage outside the ENS contracts themselves: zero hits found.
 - ENSv1 cannot express any of this — one node has exactly one owner and one resolver, so there is
   no way to alias one identity into three names without three separate registrations to keep in
@@ -192,20 +192,20 @@ Sepolia; produced only after a live run — not yet performed, see §7).
 - **Counterfeit mounts are detectable, not preventable.** Nothing on-chain stops `scam.eth` from
   deploying its own `UserRegistry`, registering `support`, and pointing it at the *same* fleet
   registry — mounting is a permissionless action any `.eth` owner can take on their own name.
-  ENF's answer is two-sided consent (C3): the mount only counts if the fleet's own
+  FNS's answer is two-sided consent (C3): the mount only counts if the fleet's own
   `enf.parents` record also lists that parent. A verifier that skips C3 (or a wallet that only
   checks "does this resolve") is fooled. This is the centerpiece of the demo, not a bug found
   late.
 - **The default-record bundle is shared by every member without an override.** A member-scoped
   resolver setter role would let that member rewrite the bundle for *everyone* (verified in
-  `contracts/test/Mount.t.sol:test_scopedMemberRoleWouldRewriteEveryone`) — ENF never grants
+  `contracts/test/Mount.t.sol:test_scopedMemberRoleWouldRewriteEveryone`) — FNS never grants
   setter roles to members, only to the operator key.
 - **C5 screening covers only the settlement address.** By default it asks the Chainalysis
   sanctions oracle on Ethereum mainnet (real OFAC data, keyless); the orange demo points the
   settlement record at a real OFAC-listed address, so the flag comes from that oracle, not from a
-  list ENF wrote. **Intercepta is used only when an API key is configured.** No API
+  list FNS wrote. **Intercepta is used only when an API key is configured.** No API
   key has been exercised end-to-end against a real "flagged" mainnet-style verdict (see §8); the
-  flag threshold is ENF's own choice, not Intercepta's; and Intercepta's documented chain list
+  flag threshold is FNS's own choice, not Intercepta's; and Intercepta's documented chain list
   is mainnets only, so its verdict for a fresh Sepolia address is unknown behaviour, not
   necessarily "clean."
 - **`agent-endpoint[web]` points at the dashboard, not at an agent that answers.** `agent-context`
@@ -216,9 +216,9 @@ Sepolia; produced only after a live run — not yet performed, see §7).
   what would let a non-member (`bob.support.shopa.eth`) or the bare `support.shopa.eth` node
   resolve, defeating the black/non-member verdict. The tradeoff: the merchant's own `<parent>.eth`
   (e.g. `shopa.eth` itself, not `support.shopa.eth`) loses whatever site/address resolution it had
-  before adopting ENF, unless the merchant sets its own resolver back on that name separately. A
+  before adopting FNS, unless the merchant sets its own resolver back on that name separately. A
   wildcard resolver on `<parent>.eth` would fix that, but would also make arbitrary non-members
-  resolve in stock ENS clients — ENF's verifier still returns black for them (it checks the
+  resolve in stock ENS clients — FNS's verifier still returns black for them (it checks the
   resolver at the leaf, not inherited), but any client that only checks "does this resolve" would
   be fooled, same failure mode as the counterfeit-mount case above.
 - **The fleet is deployed on live Sepolia** (§7.6). The Foundry and vitest suites still run against an
@@ -325,7 +325,7 @@ read back from chain; `deployments/fleet.11155111.json` is the record the app us
 | Agents | `mia`, `kai`, `rin` (one ERC-1155 token each in the fleet registry) |
 | Settlement (`addr(60)` of the default record) | `0xe2841c6Eb0FD27DdB7d5B0738396bC260d31Fe33` |
 
-Checked on live Sepolia with plain viem (its built-in Sepolia Universal Resolver, none of ENF's code):
+Checked on live Sepolia with plain viem (its built-in Sepolia Universal Resolver, none of FNS's code):
 all 12 `<agent>.support.<parent>.eth` names resolve to the settlement address, `kai.support.scam.eth`
 included (it resolves; the verifier flags it RED because `support.scam.eth` is not in `enf.parents`),
 while `bob.support.shopa.eth` and `support.shopa.eth` return `null`.
@@ -358,13 +358,13 @@ npx next dev -p 3100
   reads the chain, returns the unsigned transactions with the address that must sign each, and simulates them.
   Import the demo accounts you want to act as into the wallet (a shop's owner to unmount its doorway, the vendor
   to fire an agent, the operator for the settlement address); the dashboard asks you to switch accounts when a
-  step needs a different signer. `ENF_KILL_SWITCHES=off` hides them.
+  step needs a different signer. `FNS_KILL_SWITCHES=off` hides them.
 - A block is ~12 s on Sepolia and a full scan takes ~10 s, so a kill switch shows up on the dashboard
   within about 30 s of the click.
 
-## 8. ENF for AI agents (Curvegrid)
+## 8. FNS for AI agents (Curvegrid)
 
-ENF's structure maps directly onto "agents as namespaces":
+FNS's structure maps directly onto "agents as namespaces":
 
 - **An agent is a name, not a database row.** `mia`, `kai`, `rin` each exist as one ERC-1155
   token in the fleet's `UserRegistry`. Any name resolving to that token — under any merchant
@@ -386,8 +386,8 @@ ENF's structure maps directly onto "agents as namespaces":
   autonomous buyer can gate a payment on the verdict.
 
 **Honest scope note:** this is architecture, not an integration — there is no Curvegrid SDK call
-anywhere in this repo, and no live Curvegrid runtime was used to drive an agent through ENF.
-The claim here is that ENF's namespace-aliasing primitive is a good substrate for
+anywhere in this repo, and no live Curvegrid runtime was used to drive an agent through FNS.
+The claim here is that FNS's namespace-aliasing primitive is a good substrate for
 Curvegrid-style agent fleets, verifiable with stock tooling; wiring an actual Curvegrid agent up
 to call `scripts/verify.ts` or `/api/verify` before transacting is the natural next step, not
 something this submission has built.
@@ -418,8 +418,8 @@ Full detail in [`docs/intercepta.md`](docs/intercepta.md). Summary:
   (https://docs.web3antivirus.io/reference/api-overview): `GET
   /api/public/v2/extension/account/{address}/quick-scan`, header `X-API-KEY`, response
   `{ toxicScore, traits: [{ risk, name, ... }] }`.
-- ENF flags an address when `toxicScore >= 50` or any trait's `risk >= 50`. **This threshold
-  (50) is ENF's own choice** — Intercepta's docs do not define a clean/flagged cutoff.
+- FNS flags an address when `toxicScore >= 50` or any trait's `risk >= 50`. **This threshold
+  (50) is FNS's own choice** — Intercepta's docs do not define a clean/flagged cutoff.
 - No real "flagged" 200 response has been observed against a live key (none was available during
   the build); the adapter's shape comes from the documented OpenAPI schema and was verified
   against mocked responses plus one live 403 (bad-key) response.

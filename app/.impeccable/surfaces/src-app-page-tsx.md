@@ -7,9 +7,9 @@ related_targets: ["src/components"]
 
 # Landing (/)
 
-Scope: the public front door for ENF, before the editor. Mode: Persuade (judges opening the link, with or without the presenter; projector or laptop).
+Scope: the public front door for FNS, before the editor. Mode: Persuade (judges opening the link, with or without the presenter; projector or laptop).
 
-Audience and job: a judge must understand in seconds what ENF is (one agent-fleet registry mounted under several .eth names; two kill switches owned by opposite parties; a verifier that flags counterfeit mounts) and press Open editor. Proof is the mechanism itself, rendered from live chain data where possible. No invented customers, numbers, or testimonials.
+Audience and job: a judge must understand in seconds what FNS is (one agent-fleet registry mounted under several .eth names; two kill switches owned by opposite parties; a verifier that flags counterfeit mounts) and press Open editor. Proof is the mechanism itself, rendered from live chain data where possible. No invented customers, numbers, or testimonials.
 
 Constraints: same ENS Manager world as the editor (DESIGN.md). Any replay is labelled a preview, never a live transaction.
 
@@ -21,7 +21,7 @@ OWN-WORLD: ENS Manager family per DESIGN.md: neutral canvas, white 16px cards wi
 
 STORY: read "Hire a fleet with one transaction. Fire it with one."; watch the preview playbook unmount a doorway, fire an agent, and flag a counterfeit on the mini map; skim the three mechanism sections; press Open editor.
 
-FIRST VIEWPORT: slim nav (ENF wordmark, Open editor). Left 5/12: headline, one-sentence lede, blue Open editor pill, live block line. Right 7/12: preview playbook card beside the mini fleet map that replays its three steps on a loop, labelled Preview.
+FIRST VIEWPORT: slim nav (FNS wordmark, Open editor). Left 5/12: headline, one-sentence lede, blue Open editor pill, live block line. Right 7/12: preview playbook card beside the mini fleet map that replays its three steps on a loop, labelled Preview.
 
 FORM: product-led hero with the editor as the picture, position 5 of 7 on the ranked list, seed key 08668cd1.
 

@@ -109,8 +109,8 @@ export default function EditorPage() {
   const [hovered, setHovered] = useState<Step | null>(null);
   const inspectRef = useRef<(name: string) => void>(() => {});
   const runner = useRunner({ onChainChange: d.refreshAll, onChecked: (name) => inspectRef.current(name) });
-  const left = usePanel("enf.playbook.collapsed", "[");
-  const right = usePanel("enf.details.collapsed", "]");
+  const left = usePanel("fns.playbook.collapsed", "[");
+  const right = usePanel("fns.details.collapsed", "]");
   const collapsed = left.collapsed;
   const setCollapsed = left.set;
   const toggle = left.toggle;
@@ -236,8 +236,8 @@ export default function EditorPage() {
     <>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link href="/" className="brand" aria-label="ENF home">
-            <span className="brand-name">ENF</span>
+          <Link href="/" className="brand" aria-label="FNS home">
+            <span className="brand-name">FNS</span>
             <span className="brand-sub">Playbook editor</span>
           </Link>
           <form
@@ -331,7 +331,7 @@ export default function EditorPage() {
             <div className="title-text">
               {d.scan ? (
                 <>
-                  <h1 className="page-title">{d.scan.canonical ?? "ENF fleet"}</h1>
+                  <h1 className="page-title">{d.scan.canonical ?? "FNS fleet"}</h1>
                   <Summary scan={d.scan} />
                 </>
               ) : (

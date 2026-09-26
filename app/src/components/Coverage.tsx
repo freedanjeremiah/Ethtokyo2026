@@ -1,6 +1,6 @@
 // Agent x doorway coverage: one verify() per cell, all at the same block.
 import { useEffect, useRef } from "react";
-import type { Verdict } from "@enf/verifier";
+import type { Verdict } from "@fns/verifier";
 import type { FleetScan } from "@/lib/fleet-types";
 import { Avatar, Card, VERDICT, doorwayShort } from "./ui";
 

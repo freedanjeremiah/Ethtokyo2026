@@ -5,7 +5,7 @@
 // wallet-signed transactions planned by /api/actions and continue on "next" when they succeed; a check node reads
 // /api/verify and continues on "pass" when the verdict is the one it expects, or on "fail" otherwise.
 
-import type { Verdict } from "@enf/verifier";
+import type { Verdict } from "@fns/verifier";
 import type { ActionName } from "./fleet-types";
 
 export type StepKind = "unmount" | "fire" | "dirty" | "clean" | "counterfeit" | "reset" | "check";
@@ -258,7 +258,9 @@ export function presets(): Playbook[] {
 
 // ---------------------------------------------------------------- saving and sharing
 
-const STORE = "enf.playbooks.v2";
+const STORE = "fns.playbooks.v2";
+/** Where playbooks were saved before the rename to FNS; read once and carried over. */
+const OLD_STORE = "enf.playbooks.v2";
 const KINDS = new Set<StepKind>(["unmount", "fire", "dirty", "clean", "counterfeit", "reset", "check"]);
 const VERDICTS = new Set(["green", "red", "orange", "black", "any"]);
 const PORTS = new Set<Port>(["next", "pass", "fail"]);
@@ -357,7 +359,7 @@ function write(list: Playbook[]) {
 
 export function loadSaved(): Playbook[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORE) ?? "[]") as unknown;
+    const raw = JSON.parse(localStorage.getItem(STORE) ?? localStorage.getItem(OLD_STORE) ?? "[]") as unknown;
     return Array.isArray(raw) ? raw.map(clean).filter((p): p is Playbook => !!p) : [];
   } catch {
     return [];

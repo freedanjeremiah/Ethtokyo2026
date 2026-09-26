@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
-import type { Verdict } from "@enf/verifier";
+import type { Verdict } from "@fns/verifier";
 import type { VerifyApiResponse } from "./api-types";
 import type { ActionPlan } from "./fleet-types";
 import { type Step, actionOf } from "./playbook";

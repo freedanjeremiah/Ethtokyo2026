@@ -21,7 +21,7 @@ OWN-WORLD: ENS Manager family per DESIGN.md: neutral canvas, white 16px cards, h
 
 STORY: pick or build a playbook, hover a step to see its target outlined on the map, press Run, sign each step, watch doorways dash out and cells flip next block, then check a name for the evidence.
 
-FIRST VIEWPORT: top bar (ENF wordmark linking home, name search, wallet pill, block pill). Left column 420px: playbook title with preset menu, a trigger card, step cards joined by a spine with + inserts between, Run pinned at the column foot. Right: the fleet map as the largest surface; coverage and the run log/verifier beneath it.
+FIRST VIEWPORT: top bar (FNS wordmark linking home, name search, wallet pill, block pill). Left column 420px: playbook title with preset menu, a trigger card, step cards joined by a spine with + inserts between, Run pinned at the column foot. Right: the fleet map as the largest surface; coverage and the run log/verifier beneath it.
 
 FORM: vertical playbook builder beside the live map, position 4 of 7 on the ranked list, seed key b1223964.
 

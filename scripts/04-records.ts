@@ -6,7 +6,7 @@
 //   enf.canonical      = support.vendor.eth
 //   enf.parents        = support.vendor.eth,support.shopa.eth,support.shopb.eth (not scam)
 //   agent-context        = inline description of the fleet (ENSIP-26 allows plain text)
-//   agent-endpoint[web]  = the ENF dashboard URL (PUBLIC_BASE_URL; localhost on a fork; left unset on a live chain without it)
+//   agent-endpoint[web]  = the FNS dashboard URL (PUBLIC_BASE_URL; localhost on a fork; left unset on a live chain without it)
 // Zero per-member record writes. Only differing entries are written. Idempotent.
 //
 //   npx tsx scripts/04-records.ts

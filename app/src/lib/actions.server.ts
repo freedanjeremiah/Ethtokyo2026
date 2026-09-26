@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { type Abi, type Address, type Hex, decodeFunctionResult, encodeFunctionData, getAddress, labelhash, parseAbi, zeroAddress } from "viem";
-import { sanctionsOracleScreen } from "@enf/verifier/screen";
+import { sanctionsOracleScreen } from "@fns/verifier/screen";
 import type { ActionName, ActionPlan, ActionsInfo, TxStep } from "./fleet-types";
 import { FleetFileMissingError, REPO_ROOT, getScanContracts, readFleetFile, serverEnv, type FleetFile } from "./deployment.server";
 import { rpcClient } from "./rpc.server";
@@ -55,7 +55,8 @@ async function chainKind(): Promise<"anvil" | "live" | "unreachable"> {
 
 export async function actionsInfo(): Promise<ActionsInfo> {
   const off = (reason: string): ActionsInfo => ({ enabled: false, reason, parents: [], agents: [], chain: null });
-  if (serverEnv("ENF_KILL_SWITCHES") === "off") return off("Turned off by ENF_KILL_SWITCHES=off.");
+  // ENF_KILL_SWITCHES is the name from before the rename to FNS; still honoured.
+  if ((serverEnv("FNS_KILL_SWITCHES") ?? serverEnv("ENF_KILL_SWITCHES")) === "off") return off("Turned off by FNS_KILL_SWITCHES=off.");
   const kind = await chainKind();
   if (kind === "unreachable") return off("The chain RPC is unreachable, so kill switches are paused.");
   let fleet;

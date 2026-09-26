@@ -19,9 +19,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     <>
       <header className="land-nav">
         <div className="land-nav-inner">
-          <Link href="/" className="brand" aria-label="ENF home">
-            <span className="brand-name">ENF</span>
-            <span className="brand-sub">Ethereum Naming Fleet</span>
+          <Link href="/" className="brand" aria-label="FNS home">
+            <span className="brand-name">FNS</span>
+            <span className="brand-sub">Fleet Naming Service</span>
           </Link>
           <nav className="land-links" aria-label="Page">
             <a href="#how">How it works</a>
@@ -211,7 +211,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       </main>
 
       <footer className="land-foot">
-        <span>ENF, the Ethereum Naming Fleet. Built on ENSv2 on Sepolia.</span>
+        <span>FNS, the Fleet Naming Service. Built on ENSv2 on Sepolia.</span>
         <Link href="/editor">Open editor</Link>
       </footer>
     </>

@@ -1,9 +1,9 @@
 {
-  "name": "@enf/verifier",
+  "name": "@fns/verifier",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "ENF verifier: green/red/orange/black verdict for <label>.support.<parent> names on ENSv2",
+  "description": "FNS verifier: green/red/orange/black verdict for <label>.support.<parent> names on ENSv2",
   "exports": {
     ".": "./src/index.ts",
     "./node": "./src/node.ts",

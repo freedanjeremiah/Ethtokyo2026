@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Starts a local anvil fork of Sepolia for ENF development/testing.
+# Starts a local anvil fork of Sepolia for FNS development/testing.
 # Override the fork source with SEPOLIA_RPC_URL; defaults to a public RPC.
 
 FORK_URL="${SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"

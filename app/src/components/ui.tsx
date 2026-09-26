@@ -1,8 +1,8 @@
-// Shared primitives for the ENF dashboard, in the ENS Manager app's vocabulary:
+// Shared primitives for the FNS dashboard, in the ENS Manager app's vocabulary:
 // white rounded surfaces, bold grey section labels, record chips, pill tags.
 import { useState, type ReactNode } from "react";
 import { CheckCircle, Copy, MinusCircle, Warning, XCircle, type Icon } from "@phosphor-icons/react";
-import type { Verdict } from "@enf/verifier";
+import type { Verdict } from "@fns/verifier";
 
 export type Tone = "green" | "red" | "orange" | "grey" | "blue";
 

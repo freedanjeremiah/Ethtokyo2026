@@ -1,6 +1,6 @@
 // scripts/00-keys.ts
 //
-// Generates fresh private keys for every ENF actor into .env.local
+// Generates fresh private keys for every FNS actor into .env.local
 // (refusing to overwrite an existing key unless --force), and — when
 // RPC_URL points at a local anvil fork — funds each actor with 100 ETH via
 // anvil_setBalance so later scripts can pay gas and MockUSDC fees without a

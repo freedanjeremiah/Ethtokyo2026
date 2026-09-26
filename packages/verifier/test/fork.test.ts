@@ -82,7 +82,7 @@ describe.skipIf(!!SKIP)("verifier against the fork", () => {
         expect(r.resolved.address).toBe(getAddress(fleet!.settlementAddress));
         expect(r.resolved.canonical).toBe("support.vendor.eth");
         expect(r.resolved.parents).toEqual(["support.vendor.eth", "support.shopa.eth", "support.shopb.eth"]);
-        expect(r.resolved.agentContext).toContain("ENF support fleet. Canonical registry: support.vendor.eth.");
+        expect(r.resolved.agentContext).toContain("FNS support fleet. Canonical registry: support.vendor.eth.");
         expect(r.resolved.agentEndpointWeb).toMatch(/^https?:\/\//);
         expect(r.resolved.agentEndpointWeb).not.toContain("enf.example");
         expect(r.registries.doorway).toBe(getAddress(fleet!.fleetRegistry));

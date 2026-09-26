@@ -1,4 +1,4 @@
-# ENF — Ethereum Naming Fleet: hire a fleet with one transaction, fire it with one
+# FNS — Fleet Naming Service: hire a fleet with one transaction, fire it with one
 
 **Primary track:** ENS · Best Use of ENSv2 — $6,000 (3 / 2 / 1)
 **Secondary (gated):** Intercepta — address screening on the fleet's settlement address

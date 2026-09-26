@@ -1,5 +1,5 @@
 ---
-name: ENF (Ethereum Naming Fleet)
+name: FNS (Fleet Naming Service)
 description: A light, ENS Manager family product (a landing page and a playbook editor) that shows one agent fleet mounted under many .eth names, verified live from chain.
 colors:
   bg: "#f6f6f6"
@@ -268,13 +268,13 @@ components:
     height: "46px"
 ---
 
-# Design System: ENF (Ethereum Naming Fleet)
+# Design System: FNS (Fleet Naming Service)
 
 ## Overview
 
 **Creative North Star: "The ENS Manager, Extended"**
 
-ENF plays the category standard straight. It is meant to sit beside the ENS Manager app (app.ens.domains) on a projector and read as the same family: a flat neutral grey canvas, white rounded panels with hairline borders, one blue for everything you can press or select, and Satoshi for every word. Nothing is invented for novelty; the craft is in restraint, density that holds up from three metres, and state that is legible without reading.
+FNS plays the category standard straight. It is meant to sit beside the ENS Manager app (app.ens.domains) on a projector and read as the same family: a flat neutral grey canvas, white rounded panels with hairline borders, one blue for everything you can press or select, and Satoshi for every word. Nothing is invented for novelty; the craft is in restraint, density that holds up from three metres, and state that is legible without reading.
 
 The product has two surfaces in one family. The landing page (`/`) explains the mechanism with a live preview and three mechanism figures, and hands off to the editor with one solid blue button. The playbook editor (`/editor`) replaces the old single-route dashboard: a sticky playbook column on the left where kill switches are now steps you compose and run, and a workspace on the right where the fleet map is the largest surface and everything else explains what the map just did. It is a product, not a stats dashboard. Colour is spent on meaning: blue marks action and selection, and the verdict colours (green, red, orange, grey) mark state. Surfaces carry no shadow; depth comes from white on grey plus a 1px border.
 
@@ -419,7 +419,7 @@ Pill-shaped, bold and quiet: the ENS secondary style, with one solid primary per
 - **Error:** a 13px red line appears just below the field.
 
 ### Navigation
-- **Editor top bar:** the ENF wordmark in ENS Blue at 900 (a link home), the "Ethereum Naming Fleet" subtitle in Slate, the central search, then the wallet pill and a pill that shows the live block (green dot with tabular block number). When the RPC fails, the block pill turns orange on Apricot Wash.
+- **Editor top bar:** the FNS wordmark in ENS Blue at 900 (a link home), the "Fleet Naming Service" subtitle in Slate, the central search, then the wallet pill and a pill that shows the live block (green dot with tabular block number). When the RPC fails, the block pill turns orange on Apricot Wash.
 - **Wallet pill:** 40px, bold 15px. Disconnected it is the solid Blue Deep fill with white text; connected it becomes a white neutral pill with a Hairline border that strengthens on hover. Its focus state is a 4px blue halo.
 - **Landing nav:** the wordmark left; on the right, bold 15px Ink text links that turn Blue Deep on hover, then the primary Open editor button. On phones only the brand and the button remain.
 - **Footer:** a hairline-topped row of 14px Slate text with bold Blue Deep links that underline on hover.

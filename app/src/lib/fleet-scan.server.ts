@@ -26,7 +26,7 @@ import {
   zeroHash,
 } from "viem";
 import { getBlock, getLogs, readContract } from "viem/actions";
-import { type Screen, type VerifierDeployment, parseParents, safeNormalize, verify } from "@enf/verifier";
+import { type Screen, type VerifierDeployment, parseParents, safeNormalize, verify } from "@fns/verifier";
 import type { FleetAgent, FleetCell, FleetDoorway, FleetEvent, FleetScan } from "./fleet-types";
 
 const SUBREGISTRY_UPDATED = parseAbiItem(

@@ -1,5 +1,5 @@
 // packages/verifier/src/screen/node.ts — Node-only .env.local-aware screening resolver
-// ("@enf/verifier/screen/node").
+// ("@fns/verifier/screen/node").
 //
 // Both scripts/verify.ts (CLI) and the app's /api/verify route need to agree on exactly which
 // screening config is active, so this is the one place that reconciles process.env with the

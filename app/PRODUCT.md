@@ -10,7 +10,7 @@ web
 ETHGlobal Tokyo 2026 judges (ENS track) watching a live demo: the presenter drives the dashboard on a projector or shared screen during a short judging slot, judges watch from a few metres away while the presenter clicks the kill switches and types names. Secondary: judges opening the live link later without narration.
 
 ## Product Purpose
-ENF (Ethereum Naming Fleet) shows one ENSv2 agent-fleet registry mounted under several `.eth` names at once. A merchant adopts a vendor's support fleet into its own namespace with one transaction and drops it with one; the vendor removes one agent from every merchant with one transaction. The dashboard makes that visible and verifiable live, from chain reads, for any typed name. Success: in the first few seconds a judge understands "one fleet, many doorways", then watches a single click change several doorways at once.
+FNS (Fleet Naming Service) shows one ENSv2 agent-fleet registry mounted under several `.eth` names at once. A merchant adopts a vendor's support fleet into its own namespace with one transaction and drops it with one; the vendor removes one agent from every merchant with one transaction. The dashboard makes that visible and verifiable live, from chain reads, for any typed name. Success: in the first few seconds a judge understands "one fleet, many doorways", then watches a single click change several doorways at once.
 
 ## Positioning
 Namespace aliasing is documented by ENS and built by nobody else: one registry reachable under several parents, with two kill switches owned by opposite parties, and a verifier that tells endorsed doorways from counterfeit ones using only stock ENS reads.
@@ -28,7 +28,7 @@ Namespace aliasing is documented by ENS and built by nobody else: one registry r
 - Terminology: fleet, agent (mia, kai, rin), doorway (`support.<parent>.eth`), vendor, merchant, operator, settlement address, default record.
 
 ## Brand Commitments
-Name: ENF (Ethereum Naming Fleet). Tagline in use: "hire with one tx, fire with one". No logo exists.
+Name: FNS (Fleet Naming Service). Tagline in use: "hire with one tx, fire with one". No logo exists.
 Standing preference (chosen 2026-09-26): the category standard, played straight. The dashboard should sit alongside the ENS Manager app (app.ens.domains); its craft level is the quality bar. No novelty metaphor.
 
 ## Evidence on Hand

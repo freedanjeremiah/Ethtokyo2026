@@ -5,7 +5,7 @@ import {MountBase} from "./MountBase.sol";
 import {IPermissionedRegistry} from "../src/interfaces/IPermissionedRegistry.sol";
 import {IPermissionedResolver} from "../src/interfaces/IPermissionedResolver.sol";
 
-/// @title ENF — every claim of idea.md §2 / §6, proven against the real ENSv2 contracts on a pinned Sepolia fork.
+/// @title FNS — every claim of idea.md §2 / §6, proven against the real ENSv2 contracts on a pinned Sepolia fork.
 /// One test per claim. World: see MountBase (fleet mounted under vendor.eth, shopa.eth, shopb.eth; members mia/kai/rin).
 contract MountTest is MountBase {
     // ------------------------------------------------------------------ idea §2: one token, many mounts

@@ -1,4 +1,4 @@
-// packages/verifier/src/verify.ts — the ENF verifier (IMPLEMENTATION_PLAN Part A §A4).
+// packages/verifier/src/verify.ts — the FNS verifier (IMPLEMENTATION_PLAN Part A §A4).
 //
 //   membership  UR.findResolver(dns(name)): member only if a resolver is found AT THE LEAF (offset 0)
 //   records     stock viem getEnsAddress / getEnsText through the deployment's UniversalResolver

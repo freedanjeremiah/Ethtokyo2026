@@ -27,7 +27,7 @@ export async function connectedAccount(): Promise<Address | null> {
 }
 
 /** Fired after this page connects or switches accounts, so every useWallet() agrees even if the wallet stays quiet. */
-const CHANGED = "enf:wallet";
+const CHANGED = "fns:wallet";
 function announce(account: Address | null) {
   window.dispatchEvent(new CustomEvent<Address | null>(CHANGED, { detail: account }));
 }

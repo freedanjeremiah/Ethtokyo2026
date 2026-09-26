@@ -1,13 +1,28 @@
-# ENF backend status
+# FNS backend status
 
-The state of everything behind the ENF (Ethereum Naming Fleet) UI, written to get a new reader oriented in the
-codebase fast. It covers the on-chain setup, the Foundry tests, the setup and demo scripts, the `@enf/verifier`
+The state of everything behind the FNS (Fleet Naming Service) UI, written to get a new reader oriented in the
+codebase fast. It covers the on-chain setup, the Foundry tests, the setup and demo scripts, the `@fns/verifier`
 package and the Next.js server routes. The pitch is in [`idea.md`](idea.md), the build log in
 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), and the full runbook in [`README.md`](README.md).
 
 Last updated: 2026-09-27, branch `feat/mount`.
 
 ---
+
+## Naming
+
+The project was renamed on 2026-09-27 from ENF (Ethereum Naming Fleet) to **FNS, the Fleet Naming Service**. Every name
+people see changed: the UI, the docs, the package names (`@fns/verifier`, `@fns/scripts`) and the env var
+(`FNS_KILL_SWITCHES`; the old `ENF_KILL_SWITCHES` is still honoured).
+
+The **on-chain identifiers keep their `enf.` prefix on purpose**, because they are protocol data, not branding:
+- the text-record keys `enf.canonical` and `enf.parents`, already stored on Sepolia and read by the verifier
+- the CREATE2 salts `enf.fleet-registry.v1`, `enf.shared-resolver.v1` and `enf.parent-registry.v1`, which fix the
+  deployed addresses
+- the settlement-key tag `enf.settlement.v1`
+
+Renaming any of these would orphan the live fleet. The live `agent-context` record still reads "ENF support fleet"
+until `scripts/04-records.ts` is rerun, which costs one operator transaction.
 
 ## 1. What the system does, in one paragraph
 
@@ -31,7 +46,7 @@ Anyone can also mount the fleet under a name without consent (`support.scam.eth`
 | `deployments/fleet.anvil.json` | The same file for a local anvil fork. Gitignored. | Local only |
 | `contracts/` | Foundry **fork tests** against the real deployed ENSv2 contracts (no mocks), plus interface files. No contracts of our own are deployed; the project only composes ENSv2 primitives. | Done |
 | `scripts/` | TypeScript (tsx + viem) setup, demo and check scripts. Actor keys come from `.env.local`. | Done |
-| `packages/verifier/` | `@enf/verifier`: the verdict algorithm (C1 to C5), deployment loader and C5 screening adapters. Used by `scripts/verify.ts` and the app. | Done, unit tests passing |
+| `packages/verifier/` | `@fns/verifier`: the verdict algorithm (C1 to C5), deployment loader and C5 screening adapters. Used by `scripts/verify.ts` and the app. | Done, unit tests passing |
 | `app/` | Next.js 16 app: the landing page `/`, the workflow editor `/editor`, and the server routes under `app/src/app/api/`. | Done |
 | `docs/` | `ensv2-notes.md` (verified ENSv2 facts), `intercepta.md` (C5 design), `runbook-evidence.md` (fork run logs), `screenshots/` (README evidence). | Done |
 
@@ -111,7 +126,7 @@ All scripts read `RPC_URL` and the actor keys (`VENDOR_PK`, `OPERATOR_PK`, `SHOP
 
 The dashboard no longer runs these demo scripts on the server (see §7). They remain the terminal and runbook path.
 
-## 6. `@enf/verifier` (`packages/verifier/`)
+## 6. `@fns/verifier` (`packages/verifier/`)
 
 Input: any name `L.support.P`. The verifier normalises it (ENSIP-15), resolves it through the real UniversalResolver,
 and runs these checks. Every check reads the chain, optionally pinned to one block.
@@ -161,7 +176,7 @@ A screening failure is always reported as "unknown", never as clean.
 - **Actions:** `unmount`, `fire`, `dirty`, `clean`, `counterfeit` and `reset`. Each mirrors the matching demo script.
   `dirty` first confirms that the demo address is on the sanctions oracle.
 - **Already-done actions** return an empty plan.
-- **Availability:** they are available on a live chain and on Vercel. Only `ENF_KILL_SWITCHES=off` disables them.
+- **Availability:** they are available on a live chain and on Vercel. Only `FNS_KILL_SWITCHES=off` disables them.
 
 ### RPC resilience (changed 2026-09-26)
 
@@ -184,7 +199,7 @@ settings written by the scripts.
 |---|---|
 | `RPC_URL` | Chain reads. A local URL means the anvil fork and `fleet.anvil.json`; anything else means Sepolia and `fleet.11155111.json` |
 | `FLEET_FILE` | Overrides the fleet file path |
-| `ENF_KILL_SWITCHES` | `off` hides the kill switches |
+| `FNS_KILL_SWITCHES` | `off` hides the kill switches |
 | `SETTLEMENT_ADDRESS` | The clean address for `clean` and `reset` (falls back to the fleet file) |
 | `SANCTIONS_RPC_URL`, `SCREEN_SANCTIONS` | Mainnet RPC for the sanctions oracle, and an off switch for it |
 | `INTERCEPTA_API_KEY` and `INTERCEPTA_*` | Optional Intercepta screening |
@@ -204,7 +219,7 @@ settings written by the scripts.
   - Both side panels collapse (`[` and `]`).
 - **Running:** a run follows the wires from the trigger. Each transaction is signed in the wallet by the name's owner,
   and a check only reads the chain at or after the last transaction's block.
-- **Saving:** playbooks are stored in browser storage (`enf.playbooks.v2`) and in share links (`?playbook=`). The share
+- **Saving:** playbooks are stored in browser storage (`fns.playbooks.v2`) and in share links (`?playbook=`). The share
   link is base64url JSON, validated on load, and older list-format links still open.
 
 ## 9. Known gaps

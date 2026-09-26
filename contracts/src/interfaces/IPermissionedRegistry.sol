@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 /// @notice Minimal slice of ENSv2 `PermissionedRegistry` (ETHRegistry and every UserRegistry proxy),
 ///         derived from deployments/abis/UserRegistryImpl.json + ETHRegistry.json
-///         (ensdomains contracts-v2, tag sepolia-deployment-2026-09-15). Only what ENF's tests call.
+///         (ensdomains contracts-v2, tag sepolia-deployment-2026-09-15). Only what FNS's tests call.
 interface IPermissionedRegistry {
     enum Status {
         AVAILABLE,

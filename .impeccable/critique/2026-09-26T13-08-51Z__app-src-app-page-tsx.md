@@ -1,5 +1,5 @@
 ---
-target: ENF dashboard seamless for everyone
+target: FNS dashboard seamless for everyone
 total_score: 23
 max_score: 40
 na_heuristics: 
@@ -11,7 +11,7 @@ target_path: /Users/freedan/Desktop/ISYS1055_A2/Ethtokyo2026/app/src/app/page.ts
 timestamp: 2026-09-26T13-08-51Z
 slug: app-src-app-page-tsx
 ---
-# Critique: ENF dashboard (app/src/app/page.tsx), 2026-09-26
+# Critique: FNS dashboard (app/src/app/page.tsx), 2026-09-26
 Degraded single-context run. Score 23/40 (Acceptable).
 Heuristics: 1=2 2=2 3=3 4=2 5=2 6=3 7=2 8=3 9=3 10=1
 ## Priority issues

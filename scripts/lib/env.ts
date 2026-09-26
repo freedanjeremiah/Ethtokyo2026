@@ -1,7 +1,7 @@
 // scripts/lib/env.ts
 //
 // Shared environment loading, chain-kind detection, and viem clients for
-// ENF's fork-harness scripts. Every script in scripts/ that talks to a
+// FNS's fork-harness scripts. Every script in scripts/ that talks to a
 // chain should go through this module instead of reading process.env or
 // building clients directly, so RPC_URL / .env.local / chain-kind detection
 // stay in one place.

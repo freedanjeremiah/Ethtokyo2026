@@ -11,7 +11,7 @@ import {IETHRegistrar} from "../src/interfaces/IETHRegistrar.sol";
 import {IUniversalResolver, IUniversalHelper, IRecordProfiles} from "../src/interfaces/IUniversalResolver.sol";
 import {IMockUSDC} from "../src/interfaces/IMockUSDC.sol";
 
-/// @title MountBase — builds the ENF world on a pinned Sepolia fork, against the REAL ENSv2 contracts.
+/// @title MountBase — builds the FNS world on a pinned Sepolia fork, against the REAL ENSv2 contracts.
 ///
 /// Topology (identical to scripts/lib/fleet.ts, docs/ensv2-notes.md §3):
 ///

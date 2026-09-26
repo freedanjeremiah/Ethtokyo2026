@@ -1,4 +1,4 @@
-# ENSv2 on Sepolia — pinned deployment and semantics (ENF Task 2)
+# ENSv2 on Sepolia — pinned deployment and semantics (FNS Task 2)
 
 Researched 2026-09-26 against Sepolia block ~11,784,2xx. Every claim is tagged:
 
@@ -37,7 +37,7 @@ Source ↔ bytecode:
 `deployments/sepolia.json` = `{ chainId: 11155111, source: {...}, contracts: { <name>: { address, abi: "abis/<name>.json", codeHash } } }`.
 `codeHash` = `keccak256(eth_getCode)` on Sepolia; `scripts/check-deployment.ts` re-checks it, so a silent redeploy/upgrade shows as FAIL.
 
-| Name | Address | Role in ENF |
+| Name | Address | Role in FNS |
 |---|---|---|
 | RootRegistry | `0x9703DBD26dAB89504490994138cF2c575251a9cE` | root of the v2 tree; `getSubregistry("eth") = ETHRegistry` |
 | ETHRegistry | `0x657eA849311d3D5823348ddEd7C2AaAFb3EDE09E` | `.eth` registry (a `PermissionedRegistry`), `getParent() = (RootRegistry, "eth")` |
@@ -111,7 +111,7 @@ Fork output for a freshly registered `mia`: `(2, 1821937752, 0x358d…c24b, 2576
 2. Otherwise (`unsafeTransfer`, or safe on an emancipated registry) it requires the **owner** (`from`) to hold `ROLE_CAN_TRANSFER_ADMIN` on the token, else `TransferDisallowed(tokenId, from)`. Operator approval cannot bypass: the check reads `from`'s roles.
 3. Roles move with the token (`_transferRoles`).
 
-⇒ **Soulbound = register the member with `roleBitmap` that lacks `ROLE_CAN_TRANSFER_ADMIN`** (ENF uses `0`). Fork step 8 with `roles=0`: mia `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`; mia `unsafeTransfer` → `TransferDisallowed`; after `setApprovalForAll(kai)`, kai `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`, kai `unsafeTransfer` → `TransferDisallowed`. Mia also cannot `setResolver` on her own name (`EACUnauthorizedAccountRoles`).
+⇒ **Soulbound = register the member with `roleBitmap` that lacks `ROLE_CAN_TRANSFER_ADMIN`** (FNS uses `0`). Fork step 8 with `roles=0`: mia `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`; mia `unsafeTransfer` → `TransferDisallowed`; after `setApprovalForAll(kai)`, kai `safeTransferFrom` → `TransferUnsafeUntilRegistryIsEmancipated`, kai `unsafeTransfer` → `TransferDisallowed`. Mia also cannot `setResolver` on her own name (`EACUnauthorizedAccountRoles`).
 
 Note: `.eth` names from ETHRegistrar get `REGISTRATION_ROLE_BITMAP = SET_SUBREGISTRY(+ADMIN) | SET_RESOLVER(+ADMIN) | CAN_TRANSFER_ADMIN` (`src/registrar/ETHRegistrar.sol:18-23`); fork: `ETHRegistry.roles(labelhash("vendor"), vendor) = 0x1110000000000000000000000000000001100000`. The owner does **not** get RENEW/UNREGISTER on ETHRegistry (renew goes through the registrar). `ETHRegistry.isEmancipated() = true` on Sepolia. **VERIFIED-ONCHAIN**
 
@@ -166,7 +166,7 @@ function getParent() view returns (IRegistry parent, string label);
 function register(string label, address owner, IRegistry registry, address resolver, uint256 roleBitmap, uint64 expiry) returns (uint256 tokenId);  // PermissionedRegistry.sol:207-220, _register :440-506
 ```
 - Needs root `ROLE_REGISTRAR` (or `ROLE_REGISTER_RESERVED` for a reserved label). `owner == 0` with `roleBitmap == 0` reserves instead. `expiry` must be in the future. Reverts `LabelAlreadyRegistered` / `LabelAlreadyReserved` if live. Writes the label to LabelStore, mints the ERC-1155 token to `owner`, grants `roleBitmap` on the new token resource (admin roles allowed here, and only here).
-- ENF: `FLEET.register("mia", MIA, address(0), SHARED_RESOLVER, 0, expiry)` — gas ≈ 125k.
+- FNS: `FLEET.register("mia", MIA, address(0), SHARED_RESOLVER, 0, expiry)` — gas ≈ 125k.
 
 ### 3.6 Unregister / burn
 ```solidity

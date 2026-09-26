@@ -15,7 +15,7 @@ const satoshi = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ENF · Ethereum Naming Fleet",
+  title: "FNS · Fleet Naming Service",
   description: "One agent fleet mounted under many .eth names, verified live from chain.",
 };
 

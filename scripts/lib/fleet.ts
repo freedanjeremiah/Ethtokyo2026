@@ -1,6 +1,6 @@
 // scripts/lib/fleet.ts
 //
-// Shared building blocks for ENF's fleet setup scripts (01..04, demo-*).
+// Shared building blocks for FNS's fleet setup scripts (01..04, demo-*).
 // Everything here is idempotent: each `ensure*` function reads chain state
 // first and only sends the transactions needed to reach the target state.
 //
@@ -115,7 +115,7 @@ export const ENDORSED_PARENTS_RECORD = PARENTS.filter((p) => p.endorsed)
 
 // ENSIP-26 agent records on the default record (https://docs.ens.domains/ensip/26).
 /**
- * agent-endpoint[web]: the human-facing web interface, i.e. the ENF dashboard. PUBLIC_BASE_URL sets it. Without it,
+ * agent-endpoint[web]: the human-facing web interface, i.e. the FNS dashboard. PUBLIC_BASE_URL sets it. Without it,
  * an anvil fork gets the local dev URL, and a live chain gets null: the record is left unset rather than publishing
  * a URL nobody can open.
  */
@@ -127,7 +127,7 @@ export async function agentEndpointWeb(): Promise<string | null> {
 /** agent-context: inline text (ENSIP-26 allows plain text / Markdown), stating only what the chain records say. */
 export function agentContext(web: string | null): string {
   return [
-    `ENF support fleet. Canonical registry: ${CANONICAL_NAME}.`,
+    `FNS support fleet. Canonical registry: ${CANONICAL_NAME}.`,
     `Agents: ${MEMBERS.map((m) => m.label).join(", ")}, reachable as <agent>.support.<merchant>.eth under each endorsed doorway: ${ENDORSED_PARENTS_RECORD.split(",").join(", ")}.`,
     `A doorway not listed in enf.parents is not endorsed by this fleet. Payments go to this record's addr(60).`,
     ...(web ? [`Verify any name at ${web}.`] : []),

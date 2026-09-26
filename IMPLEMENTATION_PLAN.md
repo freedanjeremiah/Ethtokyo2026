@@ -1,4 +1,4 @@
-# ENF — Brainstorm & Implementation Plan
+# FNS — Brainstorm & Implementation Plan
 
 Priority order: **ENS (must win) → Intercepta (gated at hour 20) → Curvegrid (30 min)**.
 Idea and rationale: [`idea.md`](idea.md).
@@ -190,7 +190,7 @@ Framing: *is the doorway endorsed* (ENS) × *is the party clean* (Intercepta). S
 
 ## Part D — Curvegrid (≈30 min, any time after the gate)
 
-- [ ] README section: "ENF for AI agents" — agent fleets as namespaces; merchants hire/fire fleets with one tx; any agent client verifies an agent's doorway before transacting (ENSIP-26 discovery keys served from the default bundle).
+- [ ] README section: "FNS for AI agents" — agent fleets as namespaces; merchants hire/fire fleets with one tx; any agent client verifies an agent's doorway before transacting (ENSIP-26 discovery keys served from the default bundle).
 - [ ] Confirm the exact Curvegrid AI-agent prize criteria at the event; if it requires their platform (MultiBaas), the cheapest honest slot is indexing `FleetRegistry` + subregistry-change events to power a "mount history" timeline. Only do this if it fits in ~2h after Part C.
 
 ---
@@ -306,5 +306,5 @@ Resolution assertions go through the real UniversalResolver.
 
 ### Task 9: README and Curvegrid section
 
-- `README.md`: pitch, architecture diagram (A2), demo runbook (fork + live Sepolia steps, exact commands), truth table, "Why it's new", known limitations (counterfeit mounts detectable, not preventable), ENS correctness notes, and a "ENF for AI agents" section for Curvegrid (agents as namespaces, ENSIP-26 discovery via default bundle, hire/fire with one tx). Contract addresses table sourced from `deployments/`.
+- `README.md`: pitch, architecture diagram (A2), demo runbook (fork + live Sepolia steps, exact commands), truth table, "Why it's new", known limitations (counterfeit mounts detectable, not preventable), ENS correctness notes, and a "FNS for AI agents" section for Curvegrid (agents as namespaces, ENSIP-26 discovery via default bundle, hire/fire with one tx). Contract addresses table sourced from `deployments/`.
 - **Acceptance:** every command in the runbook was executed at least once in this task and works as written.

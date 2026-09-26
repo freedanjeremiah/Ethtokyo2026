@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@enf/verifier"],
+  transpilePackages: ["@fns/verifier"],
   // Hide the dev-mode badge so it doesn't show up on the projected demo.
   devIndicators: false,
   // deployment.server.ts reads ../deployments/sepolia.json, ../deployments/abis/*.json and the
